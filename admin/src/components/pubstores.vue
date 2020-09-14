@@ -25,15 +25,15 @@
       </el-col>
       <el-col :span="12">
         <el-time-select placeholder="起始时间" v-model="startTime" :picker-options="{
-              start: '08:30',
-              step: '00:15',
-              end: '18:30'
+              start: '00:00',
+              step: '00:30',
+              end: '24:00'
             }">
         </el-time-select>
         <el-time-select placeholder="结束时间" v-model="endTime" :picker-options="{
-              start: '08:30',
-              step: '00:15',
-              end: '18:30',
+              start: '00:00',
+              step: '00:30',
+              end: '24:00',
               minTime: startTime
             }">
         </el-time-select>
@@ -134,6 +134,38 @@
     </el-row>
 
     <el-row>
+      <el-col :span="2">
+        <div class="title">推广图片：</div>
+      </el-col>
+      <el-col :span="4">
+        <el-upload class="upload-demo" ref="promoteImage" action="http://localhost:8090/upload" :multiple="true" :limit="6"
+          :file-list="promoteImageList" :on-success="onUploadPromoteImageSuccess" :auto-upload="false">
+          <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+          <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(5)">上传到服务器</el-button>
+          <div slot="tip" class="el-upload__tip"></div>
+        </el-upload>
+      </el-col>
+    </el-row>
+
+
+    <el-row>
+      <el-col :span="4" v-for="(file, index) in tmpFiles">
+        <video
+          v-if="file.isVideo"
+          controls
+          :src="file.download_url"
+          style="width: 100px; height: 100px;"
+           />
+        <el-image
+        v-if="!file.isVideo"
+        :src="file.download_url"
+        :fit="cover"
+        style="width: 100px; height: 100px;"></el-image>
+        <el-button @click="deleteImage(file.fileid, index)" type="text" size="small">删除</el-button>
+      </el-col>
+    </el-row>
+
+    <el-row>
       <el-col :span="14">
         <div class="title">位置信息</div>
       </el-col>
@@ -222,6 +254,10 @@
   export default {
     data() {
       return {
+        id: this.$route.params._id,
+
+        tmpFiles: [],
+
         mapVisible: false,
 
         storeName: '',
@@ -350,10 +386,12 @@
         imageList: [],
         storeImageList: [],
         productImageList: [],
+        promoteImageList: [],
 
         banners: [],
         storeImages: [],
         productImages: [],
+        promoteImages: [],
 
         merchantName: '',
         merchantPhone: '',
@@ -408,6 +446,11 @@
           return
         }
 
+        if (this.promoteImages.length == 0) {
+          this.$message.error(msg + "请上传推广图片")
+          return
+        }
+
         if (!this.longitude || !this.latitude) {
           this.$message.error(msg + "请输入经纬度信息")
           return
@@ -435,6 +478,7 @@
 
         // TODO url
         let data = {
+          "id": this.id,
           "storeName": this.storeName,
           "storeDesc": this.storeDesc,
           "startTime": this.startTime,
@@ -451,6 +495,7 @@
           "banners": this.banners,
           "storeImages": this.storeImages,
           "productImages": this.productImages,
+          "promoteImages": this.promoteImages,
 
           "merchantName": this.merchantName,
           "merchantPhone": this.merchantPhone,
@@ -479,6 +524,37 @@
         this.productImages.push(e)
         this.$message.success("上传产品图片成功")
       },
+      onUploadPromoteImageSuccess(e) {
+        this.promoteImages.push(e)
+        this.$message.success("上传产品图片成功")
+      },
+
+      deleteImage(fileid, index){
+        this.$message.success(fileid)
+        this.tmpFiles.splice(index, 1)
+        for (var i = 0; i < this.banners.length; i++) {
+          if(this.banners[i].url == fileid) {
+            this.banners.splice(i,1)
+          }
+        }
+        for (var i = 0; i < this.storeImages.length; i++) {
+          if(this.storeImages[i] == fileid) {
+            this.storeImages.splice(i,1)
+          }
+        }
+
+        for (var i = 0; i < this.productImages.length; i++) {
+          if(this.productImages[i] == fileid) {
+            this.productImages.splice(i,1)
+          }
+        }
+
+        for (var i = 0; i < this.promoteImages.length; i++) {
+          if(this.promoteImages[i] == fileid) {
+            this.promoteImages.splice(i,1)
+          }
+        }
+      },
 
       onExceed() {
         alert("超出数量")
@@ -497,6 +573,8 @@
           case 4:
             this.$refs.productImage.submit();
             break
+          case 5:
+            this.$refs.promoteImage.submit();
         }
       },
 
@@ -512,6 +590,44 @@
       this.center.lng = 116.240
       this.center.lat = 40.047
       this.zoom = 15
+
+      if (this.id) {
+        axios.get('http://localhost:8090/store?id='+this.id).then(resp => {
+
+          // let tmpFiles = resp.data.split('---|---')[1]
+          console.log(resp.data)
+          // console.log(tmpFiles)
+          let store = JSON.parse(resp.data.resp_data).data
+          this.storeName = store.storeName
+          this.storeDesc = store.storeDesc
+          this.startTime = store.startTime
+          this.endTime = store.endTime
+          this.discount = store.discount
+          this.discountDate = [store.discountStart, store.discountEnd]
+          this.storeType = store.storeType
+          // TODO 图片显示
+          this.banners = store.banners,
+          this.storeImages = store.storeImages,
+          this.productImages = store.productImages,
+          this.promoteImages = store.promoteImages,
+          this.longitude = store.longitude
+          this.latitude = store.latitude
+          this.address = store.address
+          this.merchantName = store.merchantName
+          this.merchantPhone = store.merchantPhone
+          this.merchantBankCard = store.merchantBankCard
+
+          this.tmpFiles = resp.data.file_list
+          for (var i = 0; i < this.tmpFiles.length; i ++) {
+            if (this.tmpFiles[i].download_url.indexOf('mp4')!=-1){
+              this.tmpFiles[i].isVideo = true
+              // this.videoList.push({name:'a.mp4',url: this.tmpFiles[i].download_url})
+            }else {
+              this.tmpFiles[i].isVideo = false
+            }
+          }
+        })
+      }
     }
   }
 </script>

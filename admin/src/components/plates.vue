@@ -1,6 +1,41 @@
 <template>
 
   <div>
+
+    <el-table
+        :data="plates"
+        style="width: 100%">
+        <el-table-column
+          label="标题"
+          width="100">
+          <template slot-scope="scope">
+            <span style="margin-left: 10px">{{ scope.row.title }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="位置"
+          width="100">
+          <template slot-scope="scope">
+            <span style="margin-left: 10px">{{ scope.row.index }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="800">
+          <template slot-scope="scope">
+            <el-button type="text" @click="handleDelete(scope.$index, plates)">编辑</el-button>
+            <el-button type="text" @click="handleDelete(scope.$index, plates)">删除</el-button>
+
+            <el-upload class="upload-demo" ref="p1Item" action="http://localhost:8090/upload"
+               :on-success="onUploadSuccess1" :auto-upload="false">
+              <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+              <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器</el-button>
+              <div slot="tip" class="el-upload__tip"></div>
+            </el-upload>
+
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-button type="primary" style="width: 100%;margin-top: 5px;" icon="el-icon-plus" @click="addPlate">新增板块</el-button>
+
     <el-row>
       <el-col :span="14">
         <div class="title">超实惠</div>
@@ -248,6 +283,7 @@
   export default {
     data() {
       return {
+        plates: [],
         plates1: {},
         plates2: [],
         plates3: [],
@@ -268,6 +304,9 @@
     methods: {
       handleDelete(index, rows) {
         rows.splice(index, 1)
+      },
+      addPlate() {
+        this.plates.push({})
       },
       addNew(){
         if (!this.id1) {
@@ -414,6 +453,7 @@
     },
     mounted() {
       axios.get('http://localhost:8090/plates').then(resp => {
+        this.plates = resp.data.data
         this.plates1 = resp.data.data[0]
         this.plates2 = resp.data.data[1]
         this.plates3 = resp.data.data[2]

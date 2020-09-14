@@ -7,18 +7,15 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gobuffalo/packr"
 	"github.com/google/uuid"
 )
 
-var access_token = ""
+var access_token = "37_D0B76czxEg51-r5VCL0SOVQl9Q61wIMfycScmbhJQ9bl0Y0YV1PHtBYBc-Tj4gbE_qIQF7ZWv0Yo49XU8Uj4zj6rAIi9jijgPCNOBPzTYoUTp2Gw7a4qsa6fxacLXY9l1LCqOV6gNo0O-pvjFZMeAGAKER"
 
 const (
 	env      = "dev-osmu3"
@@ -26,7 +23,7 @@ const (
 	funcName = "console"
 )
 
-func init() {
+func init1() {
 	go func() {
 		for {
 			resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx9b588b2b3f090400&secret=08d530ef7af12573a04586491aff47a7")
@@ -73,6 +70,7 @@ func main() {
 	r.GET("/users", users)
 	r.POST("/updateuser", updateuser)
 	r.POST("/addcoupon", addcoupon)
+	r.GET("/store", store)
 
 	r.OPTIONS("/upload", options)
 	r.OPTIONS("/publish", options)
@@ -82,26 +80,141 @@ func main() {
 	r.OPTIONS("/users", options)
 	r.OPTIONS("/updateuser", options)
 	r.OPTIONS("/addcoupon", options)
+	r.OPTIONS("/store", options)
 
-	box := packr.NewBox("dist")
-	static := packr.NewBox("dist/static")
-	r.StaticFS("/web", box)
-	r.StaticFS("static", static)
+	// box := packr.NewBox("dist")
+	// static := packr.NewBox("dist/static")
+	// r.StaticFS("/web", box)
+	// r.StaticFS("static", static)
 
-	go func() {
-		time.Sleep(time.Second)
-		indexUrl := "http://localhost:8090/web/#/components/pubstores"
-		switch runtime.GOOS {
-		case "windows":
-			exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
-		case "darwin":
-			exec.Command(`open`, indexUrl).Start()
-		case "linux":
-			exec.Command(`xdg-open`, indexUrl).Start()
-		}
-	}()
+	// go func() {
+	// 	time.Sleep(time.Second)
+	// 	indexUrl := "http://localhost:8090/web/#/components/pubstores"
+	// 	switch runtime.GOOS {
+	// 	case "windows":
+	// 		exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
+	// 	case "darwin":
+	// 		exec.Command(`open`, indexUrl).Start()
+	// 	case "linux":
+	// 		exec.Command(`xdg-open`, indexUrl).Start()
+	// 	}
+	// }()
 
 	r.Run(":8090")
+}
+
+func store(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	id := c.Request.FormValue("id")
+	params := `{"id":"` + id + `", "tp": 1}`
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consolestores"), "application/json", strings.NewReader(params))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(data), err)
+	r := &Resp{}
+	if err := json.Unmarshal(data, r); err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	if r.Errcode != 0 {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	rd := &RespData{}
+	if err := json.Unmarshal([]byte(r.RespData), rd); err != nil {
+		fmt.Println(err)
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+	images := make([]string, 0)
+
+	for _, v := range rd.Data.Banners {
+		images = append(images, v.URL)
+	}
+
+	images = append(images, rd.Data.StoreImages...)
+	images = append(images, rd.Data.ProductImages...)
+	images = append(images, rd.Data.PromoteImages...)
+
+	fileList := make([]*FileItem, 0)
+	for i := range images {
+		item := &FileItem{
+			FileID: images[i],
+			MaxAge: 7200,
+		}
+		fileList = append(fileList, item)
+	}
+
+	reqParams := struct {
+		Env      string      `json:"env"`
+		FileList []*FileItem `json:"file_list"`
+	}{
+		Env:      env,
+		FileList: fileList,
+	}
+
+	data, err = json.Marshal(reqParams)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println()
+	fmt.Println(string(data))
+	fmt.Println()
+
+	resp, err = http.Post(fmt.Sprintf("https://api.weixin.qq.com/tcb/batchdownloadfile?access_token=%s", access_token), "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+	data, err = ioutil.ReadAll(resp.Body)
+	fmt.Println(string(data), err)
+
+	rf := &RespFile{}
+
+	if err := json.Unmarshal(data, rf); err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	rf.RespData = r.RespData
+
+	c.JSON(http.StatusOK, rf)
+}
+
+type RespFile struct {
+	FileList []*RespFileItem `json:"file_list"`
+	RespData string          `json:"resp_data"`
+}
+
+type RespFileItem struct {
+	FileID      string `json:"fileid"`
+	DownloadURL string `json:"download_url"`
+}
+
+type FileItem struct {
+	FileID string `json:"fileid"`
+	MaxAge int32  `json:"max_age"`
+}
+
+type RespData struct {
+	Data struct {
+		Banners       []*Banner `json:"banners"`
+		StoreImages   []string  `json:"storeImages"`
+		ProductImages []string  `json:"productImages"`
+		PromoteImages []string  `json:"promotoImages"`
+	} `json:"data"`
+}
+
+type Banner struct {
+	IsVideo bool   `json:"isVideo"`
+	URL     string `json:"url"`
 }
 
 func addcoupon(c *gin.Context) {
@@ -222,7 +335,10 @@ func plates(c *gin.Context) {
 func stores(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
-	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consolestores"), "application/json", nil)
+	q := c.Request.FormValue("q")
+	params := `{"q":"` + q + `"}`
+
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consolestores"), "application/json", strings.NewReader(params))
 	if err != nil {
 		c.String(http.StatusInternalServerError, "internal server error")
 		return

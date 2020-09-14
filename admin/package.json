@@ -18,6 +18,7 @@
     "element-ui": "^2.13.2",
     "moment": "^2.27.0",
     "vue": "^2.5.2",
+    "vue-baidu-map": "^0.21.22",
     "vue-router": "^3.0.1"
   },
   "devDependencies": {

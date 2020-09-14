@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "vue-baidu-map": "^0.21.22"
+  }
+}

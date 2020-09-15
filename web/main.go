@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var access_token = "37_D0B76czxEg51-r5VCL0SOVQl9Q61wIMfycScmbhJQ9bl0Y0YV1PHtBYBc-Tj4gbE_qIQF7ZWv0Yo49XU8Uj4zj6rAIi9jijgPCNOBPzTYoUTp2Gw7a4qsa6fxacLXY9l1LCqOV6gNo0O-pvjFZMeAGAKER"
+var access_token = "37_QUIE_ZYSV8njoOMWmsaVzOk7iUMCz3hPITXkrQaeXPogmXK_gbvCFfyKul-p1RO0dJbNqhdc7u3KvxdURT9bTVGhNbWx0-nU4vjy0K_BdbPZ3U2vPOfnTiZXWctuk-PvuKPESnvr8brtK8c3APZcAEAQFP"
 
 const (
 	env      = "dev-osmu3"
@@ -23,7 +23,7 @@ const (
 	funcName = "console"
 )
 
-func init1() {
+func init() {
 	go func() {
 		for {
 			resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx9b588b2b3f090400&secret=08d530ef7af12573a04586491aff47a7")
@@ -67,6 +67,8 @@ func main() {
 	r.GET("/stores", stores)
 	r.GET("/plates", plates)
 	r.POST("/updateplate", updateplate)
+	r.POST("/addplate", addplate)
+	r.GET("/plate", plate)
 	r.GET("/users", users)
 	r.POST("/updateuser", updateuser)
 	r.POST("/addcoupon", addcoupon)
@@ -81,6 +83,8 @@ func main() {
 	r.OPTIONS("/updateuser", options)
 	r.OPTIONS("/addcoupon", options)
 	r.OPTIONS("/store", options)
+	r.OPTIONS("/addplate", options)
+	r.OPTIONS("/plate", options)
 
 	// box := packr.NewBox("dist")
 	// static := packr.NewBox("dist/static")
@@ -101,6 +105,34 @@ func main() {
 	// }()
 
 	r.Run(":8090")
+}
+
+func plate(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	id := c.Request.FormValue("id")
+	params := `{"_id":"` + id + `", "tp": 3}`
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consoleplates"), "application/json", strings.NewReader(params))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(string(data))
+	r := &Resp{}
+	if err := json.Unmarshal(data, r); err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	if r.Errcode != 0 {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	c.String(http.StatusOK, r.RespData)
 }
 
 func store(c *gin.Context) {
@@ -140,67 +172,22 @@ func store(c *gin.Context) {
 	images = append(images, rd.Data.ProductImages...)
 	images = append(images, rd.Data.PromoteImages...)
 
-	fileList := make([]*FileItem, 0)
-	for i := range images {
-		item := &FileItem{
-			FileID: images[i],
-			MaxAge: 7200,
-		}
-		fileList = append(fileList, item)
+	fileList, err := getTempFiles(images)
+	if err != nil {
+		fmt.Println(err)
+		c.Status(http.StatusInternalServerError)
+		return
 	}
 
-	reqParams := struct {
-		Env      string      `json:"env"`
-		FileList []*FileItem `json:"file_list"`
+	rf := &struct {
+		FileList []*RespFileItem `json:"file_list"`
+		RespData string          `json:"resp_data"`
 	}{
-		Env:      env,
 		FileList: fileList,
 	}
-
-	data, err = json.Marshal(reqParams)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "internal server error")
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println()
-	fmt.Println(string(data))
-	fmt.Println()
-
-	resp, err = http.Post(fmt.Sprintf("https://api.weixin.qq.com/tcb/batchdownloadfile?access_token=%s", access_token), "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		c.String(http.StatusInternalServerError, "internal server error")
-		return
-	}
-	data, err = ioutil.ReadAll(resp.Body)
-	fmt.Println(string(data), err)
-
-	rf := &RespFile{}
-
-	if err := json.Unmarshal(data, rf); err != nil {
-		c.String(http.StatusInternalServerError, "internal server error")
-		return
-	}
-
 	rf.RespData = r.RespData
 
 	c.JSON(http.StatusOK, rf)
-}
-
-type RespFile struct {
-	FileList []*RespFileItem `json:"file_list"`
-	RespData string          `json:"resp_data"`
-}
-
-type RespFileItem struct {
-	FileID      string `json:"fileid"`
-	DownloadURL string `json:"download_url"`
-}
-
-type FileItem struct {
-	FileID string `json:"fileid"`
-	MaxAge int32  `json:"max_age"`
 }
 
 type RespData struct {
@@ -215,6 +202,81 @@ type RespData struct {
 type Banner struct {
 	IsVideo bool   `json:"isVideo"`
 	URL     string `json:"url"`
+}
+
+/**
+{"env":"dev-osmu3","file_list":[{"fileid":"cloud://dev-osmu3.6465-dev-osmu3-1302781643/images/console/f0a99207-8a44-4e99-bae8-22ffa05382e7.mp4","max_age":7200},
+{"fileid":"cloud://dev-osmu3.6465-dev-osmu3-1302781643/images/console/7d017864-03ba-474c-ae68-18d2f693d6d3.jpg","max_age":7200},
+{"fileid":"cloud://dev-osmu3.6465-dev-osmu3-1302781643/images/console/14460677-1be8-4a71-bce7-6dcff2c1efd0.jpg","max_age":7200},
+{"fileid":"cloud://dev-osmu3.6465-dev-osmu3-1302781643/images/console/c80715bf-f134-4d9a-9ed5-e2b815a34b3d.jpg","max_age":7200}]}
+
+{"errcode":0,"errmsg":"ok","file_list":[
+	{"fileid":"cloud:\/\/dev-osmu3.6465-dev-osmu3-1302781643\/images\/console\/f0a99207-8a44-4e99-bae8-22ffa05382e7.mp4",
+	"download_url":"https:\/\/6465-dev-osmu3-1302781643.tcb.qcloud.la\/images\/console\/f0a99207-8a44-4e99-bae8-22ffa05382e7.mp4",
+	"status":0,"errmsg":"ok"},
+	{"fileid":"cloud:\/\/dev-osmu3.6465-dev-osmu3-1302781643\/images\/console\/7d017864-03ba-474c-ae68-18d2f693d6d3.jpg",
+	"download_url":"https:\/\/6465-dev-osmu3-1302781643.tcb.qcloud.la\/images\/console\/7d017864-03ba-474c-ae68-18d2f693d6d3.jpg","status":0,"errmsg":"ok"},
+	{"fileid":"cloud:\/\/dev-osmu3.6465-dev-osmu3-1302781643\/images\/console\/14460677-1be8-4a71-bce7-6dcff2c1efd0.jpg",
+	"download_url":"https:\/\/6465-dev-osmu3-1302781643.tcb.qcloud.la\/images\/console\/14460677-1be8-4a71-bce7-6dcff2c1efd0.jpg","status":0,"errmsg":"ok"},
+	{"fileid":"cloud:\/\/dev-osmu3.6465-dev-osmu3-1302781643\/images\/console\/c80715bf-f134-4d9a-9ed5-e2b815a34b3d.jpg",
+	"download_url":"https:\/\/6465-dev-osmu3-1302781643.tcb.qcloud.la\/images\/console\/c80715bf-f134-4d9a-9ed5-e2b815a34b3d.jpg","status":0,"errmsg":"ok"}]}
+*/
+
+func getTempFiles(fileIds []string) (fileList []*RespFileItem, err error) {
+
+	fileListReq := make([]*FileItem, 0)
+	for i := range fileIds {
+		item := &FileItem{
+			FileID: fileIds[i],
+			MaxAge: 7200,
+		}
+		fileListReq = append(fileListReq, item)
+	}
+
+	reqParams := struct {
+		Env      string      `json:"env"`
+		FileList []*FileItem `json:"file_list"`
+	}{
+		Env:      env,
+		FileList: fileListReq,
+	}
+
+	data, err := json.Marshal(reqParams)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(fmt.Sprintf("https://api.weixin.qq.com/tcb/batchdownloadfile?access_token=%s", access_token), "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	data, err = ioutil.ReadAll(resp.Body)
+	fmt.Println(string(data), err)
+
+	rf := &struct {
+		ErrCode  int             `json:"errcode"`
+		ErrMsg   string          `json:"errmsg"`
+		FileList []*RespFileItem `json:"file_list"`
+	}{}
+
+	if rf.ErrCode != 0 {
+		return nil, fmt.Errorf(rf.ErrMsg)
+	}
+
+	if err = json.Unmarshal(data, rf); err != nil {
+		return nil, err
+	}
+	return rf.FileList, nil
+}
+
+type RespFileItem struct {
+	FileID      string `json:"fileid"`
+	DownloadURL string `json:"download_url"`
+}
+
+type FileItem struct {
+	FileID string `json:"fileid"`
+	MaxAge int32  `json:"max_age"`
 }
 
 func addcoupon(c *gin.Context) {
@@ -303,6 +365,39 @@ func updateplate(c *gin.Context) {
 	fmt.Println(string(data), err)
 
 	c.Status(http.StatusOK)
+}
+
+func addplate(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("req is: ", string(data))
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consoleplates"), "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+
+	}
+
+	data, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(string(data), err)
+	r := &Resp{}
+	if err := json.Unmarshal(data, r); err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	if r.Errcode != 0 {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	c.String(http.StatusOK, r.RespData)
 }
 
 func plates(c *gin.Context) {

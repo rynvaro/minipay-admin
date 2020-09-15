@@ -96,16 +96,16 @@
           </el-table-column>
         </el-table>
 
-        <el-dialog title="新增板块" :visible.sync="dialogFormVisible">
+        <el-dialog title="新增推荐" :visible.sync="dialogFormVisible">
 
             <el-row>
               <el-col :span="8">
-                <el-select v-model="store" filterable placeholder="搜索商家">
+                <el-select v-model="storeIndex" filterable placeholder="搜索商家">
                     <el-option
-                      v-for="item in stores"
+                      v-for="(item, index) in stores"
                       :key="item._id"
                       :label="item.storeName"
-                      :value="item">
+                      :value="index">
                     </el-option>
                   </el-select>
               </el-col>
@@ -148,7 +148,7 @@
           items: []
         },
         stores: [],
-        store: {},
+        storeIndex: '',
         dialogFormVisible: false,
 
         itemImage: '',
@@ -192,7 +192,7 @@
       },
       //
       doAddNewList() {
-        if (!this.store._id) {
+        if (this.storeIndex === '') {
           this.$message.error("请选择商家")
           return
         }
@@ -200,8 +200,9 @@
           this.$message.error("请上传推广图片")
           return
         }
-        this.plate.items.push({storeId: this.store._id,title: this.store.storeName, discount: this.store.discount, image: this.itemImage, desc: this.store.storeDesc})
-        this.selectedValue = ''
+        let store = this.stores[this.storeIndex]
+        this.plate.items.push({storeId: store._id,title: store.storeName, discount: store.discount, image: this.itemImage, desc: store.storeDesc})
+        this.storeIndex = ''
         this.itemImage = ''
         this.dialogFormVisible =false
       },

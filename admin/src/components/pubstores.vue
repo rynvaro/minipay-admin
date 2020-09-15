@@ -234,6 +234,15 @@
 
     <el-row>
       <el-col :span="2">
+        <div class="title">开户行：</div>
+      </el-col>
+      <el-col :span="12">
+        <el-input placeholder="请输入内容" v-model="bank" clearable></el-input>
+      </el-col>
+    </el-row>
+
+    <el-row>
+      <el-col :span="2">
         <div class="title">银行卡号：</div>
       </el-col>
       <el-col :span="12">
@@ -395,6 +404,7 @@
 
         merchantName: '',
         merchantPhone: '',
+        bank: '',
         merchantBankCard: '',
       }
     },
@@ -471,6 +481,11 @@
           return
         }
 
+        if (!this.bank) {
+          this.$message.error(msg + "请输入开户行")
+          return
+        }
+
         if (!this.merchantBankCard) {
           this.$message.error(msg + "请输入商家银行卡号")
           return
@@ -499,6 +514,7 @@
 
           "merchantName": this.merchantName,
           "merchantPhone": this.merchantPhone,
+          "bank": this.bank,
           "merchantBankCard": this.merchantBankCard,
         }
         axios.post('http://localhost:8090/publish', data)

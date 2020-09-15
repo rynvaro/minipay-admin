@@ -7,15 +7,18 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gobuffalo/packr"
 	"github.com/google/uuid"
 )
 
-var access_token = "37_QUIE_ZYSV8njoOMWmsaVzOk7iUMCz3hPITXkrQaeXPogmXK_gbvCFfyKul-p1RO0dJbNqhdc7u3KvxdURT9bTVGhNbWx0-nU4vjy0K_BdbPZ3U2vPOfnTiZXWctuk-PvuKPESnvr8brtK8c3APZcAEAQFP"
+var access_token = ""
 
 const (
 	env      = "dev-osmu3"
@@ -49,7 +52,7 @@ func init() {
 			}
 			access_token = r.AccessToken
 			fmt.Println("token is: ", access_token)
-			time.Sleep(time.Minute * 20)
+			time.Sleep(time.Minute * 60)
 		}
 	}()
 }
@@ -86,23 +89,23 @@ func main() {
 	r.OPTIONS("/addplate", options)
 	r.OPTIONS("/plate", options)
 
-	// box := packr.NewBox("dist")
-	// static := packr.NewBox("dist/static")
-	// r.StaticFS("/web", box)
-	// r.StaticFS("static", static)
+	box := packr.NewBox("dist")
+	static := packr.NewBox("dist/static")
+	r.StaticFS("/web", box)
+	r.StaticFS("static", static)
 
-	// go func() {
-	// 	time.Sleep(time.Second)
-	// 	indexUrl := "http://localhost:8090/web/#/components/pubstores"
-	// 	switch runtime.GOOS {
-	// 	case "windows":
-	// 		exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
-	// 	case "darwin":
-	// 		exec.Command(`open`, indexUrl).Start()
-	// 	case "linux":
-	// 		exec.Command(`xdg-open`, indexUrl).Start()
-	// 	}
-	// }()
+	go func() {
+		time.Sleep(time.Second)
+		indexUrl := "http://localhost:8090/web/#/components/pubstores"
+		switch runtime.GOOS {
+		case "windows":
+			exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
+		case "darwin":
+			exec.Command(`open`, indexUrl).Start()
+		case "linux":
+			exec.Command(`xdg-open`, indexUrl).Start()
+		}
+	}()
 
 	r.Run(":8090")
 }

@@ -149,7 +149,7 @@
 
 
     <el-row>
-      <el-col :span="4" v-for="(file, index) in tmpFiles">
+      <el-col :span="4" v-for="(file, index) in tmpFiles" :key="index">
         <video
           v-if="file.isVideo"
           controls

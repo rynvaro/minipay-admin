@@ -1,462 +1,187 @@
 <template>
 
   <div>
-
     <el-table
         :data="plates"
         style="width: 100%">
         <el-table-column
           label="标题"
-          width="100">
+          width="200">
           <template slot-scope="scope">
             <span style="margin-left: 10px">{{ scope.row.title }}</span>
           </template>
         </el-table-column>
         <el-table-column
           label="位置"
-          width="100">
+          width="200">
           <template slot-scope="scope">
             <span style="margin-left: 10px">{{ scope.row.index }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="800">
+        <el-table-column label="操作" width="500">
           <template slot-scope="scope">
-            <el-button type="text" @click="handleDelete(scope.$index, plates)">编辑</el-button>
-            <el-button type="text" @click="handleDelete(scope.$index, plates)">删除</el-button>
-
-            <el-upload class="upload-demo" ref="p1Item" action="http://localhost:8090/upload"
-               :on-success="onUploadSuccess1" :auto-upload="false">
-              <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-              <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器</el-button>
-              <div slot="tip" class="el-upload__tip"></div>
-            </el-upload>
-
+            <el-button type="text" @click="edit(scope.row)">编辑</el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-button type="primary" style="width: 100%;margin-top: 5px;" icon="el-icon-plus" @click="addPlate">新增板块</el-button>
 
-    <el-row>
-      <el-col :span="14">
-        <div class="title">超实惠</div>
-      </el-col>
-    </el-row>
-
-    <el-row>
-      <el-col :span="2">
-        <div class="title">板块图片：</div>
-      </el-col>
-      <el-col :span="4">
-        <el-upload class="upload-demo" ref="p1" action="http://localhost:8090/upload" :on-success="onP1Success" :auto-upload="false">
-          <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-          <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(1)">上传到服务器</el-button>
-          <div slot="tip" class="el-upload__tip"></div>
-        </el-upload>
-      </el-col>
-    </el-row>
-
-    <el-table
-        :data="plates1.items"
-        style="width: 100%">
-        <el-table-column
-          label="商家ID"
-          width="250">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.storeId }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="推广文案"
-          width="500">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.desc }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作">
-          <template slot-scope="scope">
-            <el-button
-              size="mini"
-              type="danger"
-              @click="handleDelete(scope.$index, plates1.items)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+	  <el-dialog title="新增板块" :visible.sync="dialogFormVisible">
 
       <el-row>
-        <el-col :span="3">
-          <el-button @click="addNew">新增一条推荐</el-button>
+        <el-col :span="2">
+          <div class="title">标题：</div>
         </el-col>
         <el-col :span="4">
-          <el-input placeholder="商家ID" v-model="id1" clearable></el-input>
+          <el-input placeholder="请输入店铺名称" v-model="newPlate.title" clearable></el-input>
         </el-col>
+
+        <el-col :span="2">
+          <div class="title">位置：</div>
+        </el-col>
+        <el-col :span="4">
+          <el-input placeholder="请输入位置" v-model="newPlate.index" clearable></el-input>
+        </el-col>
+
         <el-col :span="8">
-          <el-input placeholder="文案" v-model="desc1" clearable></el-input>
-        </el-col>
-        <el-col :span="4">
-          <el-upload class="upload-demo" ref="p1Item" action="http://localhost:8090/upload"
-             :on-success="onUploadSuccess1" :auto-upload="false">
-            <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-            <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器</el-button>
-            <div slot="tip" class="el-upload__tip"></div>
-          </el-upload>
+
+           <el-upload class="upload-demo" ref="newPlate" action="http://localhost:8090/upload" :on-success="onNewPlateImageUploadSuccess" :auto-upload="false">
+             <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+             <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(10)">上传到服务器</el-button>
+             <div slot="tip" class="el-upload__tip"></div>
+           </el-upload>
+
         </el-col>
       </el-row>
 
-    <el-row>
-      <el-col :span="18">
-        <el-button type="primary" @click="doUpdate">更新超实惠板块</el-button>
-      </el-col>
-    </el-row>
-
-
-    <el-row>
-
-       <el-divider><i class="el-icon-mobile-phone"></i></el-divider>
-       <el-divider><i class="el-icon-mobile-phone"></i></el-divider>
-
-    </el-row>
-    <!-- 0000000000000 -->
-
-    <el-row>
-      <el-col :span="20">
-        <div class="title">最新鲜</div>
-      </el-col>
-    </el-row>
-
-    <el-row>
-      <el-col :span="2">
-        <div class="title">板块图片：</div>
-      </el-col>
-      <el-col :span="4">
-        <el-upload class="upload-demo" ref="p2" action="http://localhost:8090/upload" :on-success="onP2Success" :auto-upload="false">
-          <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-          <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(3)">上传到服务器</el-button>
-          <div slot="tip" class="el-upload__tip"></div>
-        </el-upload>
-      </el-col>
-    </el-row>
-
-    <el-table
-        :data="plates2.items"
-        style="width: 100%">
-        <el-table-column
-          label="商家ID"
-          width="250">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.storeId }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="推广文案"
-          width="500">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.desc }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作">
-          <template slot-scope="scope">
-            <el-button
-              size="mini"
-              type="danger"
-              @click="handleDelete(scope.$index, plates2.items)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
       <el-row>
         <el-col :span="3">
-          <el-button @click="addNew2">新增一条推荐</el-button>
+          <div class="title">跳转连接：</div>
         </el-col>
         <el-col :span="4">
-          <el-input placeholder="商家ID" v-model="id2" clearable></el-input>
-        </el-col>
-        <el-col :span="8">
-          <el-input placeholder="文案" v-model="desc2" clearable></el-input>
-        </el-col>
-        <el-col :span="4">
-          <el-upload class="upload-demo" ref="p2Item" action="http://localhost:8090/upload"
-             :on-success="onUploadSuccess2" :auto-upload="false">
-            <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-            <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(4)">上传到服务器</el-button>
-            <div slot="tip" class="el-upload__tip"></div>
-          </el-upload>
+          <el-select v-model="newPlate.linkTo" filterable placeholder="跳转连接">
+              <el-option
+                v-for="item in links"
+                :key="item.id"
+                :label="item.label"
+                :value="item.value">
+              </el-option>
+            </el-select>
         </el-col>
       </el-row>
 
-    <el-row>
-      <el-col :span="18">
-        <el-button type="primary" @click="doUpdate2">更新最新鲜板块</el-button>
-      </el-col>
-    </el-row>
-
-    <!-- 0000000000000 -->
-
-    <el-row>
-
-       <el-divider><i class="el-icon-mobile-phone"></i></el-divider>
-       <el-divider><i class="el-icon-mobile-phone"></i></el-divider>
-
-    </el-row>
-
-    <!-- 0000000000000 -->
-
-    <el-row>
-      <el-col :span="20">
-        <div class="title">生活丽人</div>
-      </el-col>
-    </el-row>
-
-    <el-row>
-      <el-col :span="2">
-        <div class="title">板块图片：</div>
-      </el-col>
-      <el-col :span="4">
-        <el-upload class="upload-demo" ref="p3" action="http://localhost:8090/upload" :on-success="onP3Success" :auto-upload="false">
-          <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-          <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(5)">上传到服务器</el-button>
-          <div slot="tip" class="el-upload__tip"></div>
-        </el-upload>
-      </el-col>
-    </el-row>
-
-    <el-table
-        :data="plates3.items"
-        style="width: 100%">
-        <el-table-column
-          label="商家ID"
-          width="250">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.storeId }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="推广文案"
-          width="500">
-          <template slot-scope="scope">
-            <span style="margin-left: 10px">{{ scope.row.desc }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作">
-          <template slot-scope="scope">
-            <el-button
-              size="mini"
-              type="danger"
-              @click="handleDelete(scope.$index, plates3.items)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-row>
-        <el-col :span="3">
-          <el-button @click="addNew3">新增一条推荐</el-button>
-        </el-col>
-        <el-col :span="4">
-          <el-input placeholder="商家ID" v-model="id3" clearable></el-input>
-        </el-col>
-        <el-col :span="8">
-          <el-input placeholder="文案" v-model="desc3" clearable></el-input>
-        </el-col>
-        <el-col :span="4">
-          <el-upload class="upload-demo" ref="p3Item" action="http://localhost:8090/upload"
-             :on-success="onUploadSuccess3" :auto-upload="false">
-            <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-            <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(6)">上传到服务器</el-button>
-            <div slot="tip" class="el-upload__tip"></div>
-          </el-upload>
-        </el-col>
-      </el-row>
-
-    <el-row>
-      <el-col :span="18">
-        <el-button type="primary" @click="doUpdate3">更新生活丽人板块</el-button>
-      </el-col>
-    </el-row>
-
-    <!-- 0000000000000 -->
 
 
+	    <div slot="footer" class="dialog-footer">
+	      <el-button @click="dialogFormVisible = false">取 消</el-button>
+	      <el-button type="primary" @click="doAddNewPlate">确 定</el-button>
+	    </div>
+	  </el-dialog>
+
+    <el-button type="primary" style="width: 100%;margin-top: 5px;" icon="el-icon-plus" @click="addPlate">新增板块</el-button>
   </div>
 </template>
 
 <script>
   import axios from 'axios'
+  import { Loading } from 'element-ui';
   export default {
     data() {
       return {
         plates: [],
-        plates1: {},
-        plates2: [],
-        plates3: [],
+        dialogFormVisible: false,
 
-        id1: '',
-        desc1: '',
-        image1: '',
+        newPlate: {
+          title: '',
+          index: -1,
+          image: '',
+          linkTo: '',
+        },
 
-        id2: '',
-        desc2: '',
-        image2: '',
-
-        id3: '',
-        desc3: '',
-        image3: '',
+        links: [
+          {
+            value: '1',
+            label: '超实惠'
+          }, {
+            value: '2',
+            label: '最新鲜'
+          }, {
+            value: '3',
+            label: '生活丽人'
+          }, {
+            value: '4',
+            label: '食在上饶'
+          }, {
+            value: '5',
+            label: '玩乐途游'
+          },
+          {
+            value: '6',
+            label: '附近商家'
+          }]
       }
     },
     methods: {
-      handleDelete(index, rows) {
-        rows.splice(index, 1)
+      doAddNewPlate() {
+        if (!this.newPlate.title) {
+          this.$message.error("请输入板块标题")
+          return
+        }
+        if (this.newPlate.index == -1) {
+          this.$message.error("请输入展示位置")
+          return
+        }
+        if (!this.newPlate.image) {
+          this.$message.error("请上传板块图片")
+          return
+        }
+        if (!this.newPlate.linkTo) {
+          this.$message.error("请选择跳转连接")
+          return
+        }
+
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.newPlate.tp = 1
+        axios.post('http://localhost:8090/addplate',this.newPlate).then(resp => {
+          loadingInstance.close()
+          if (resp.status != 200 ){
+            this.$message.error("更新失败")
+          }else {
+            this.dialogFormVisible = false
+            console.log(resp.data)
+            this.plates.push({_id: resp.data._id, title: resp.data.title, index: resp.data.index, items: resp.data.items})
+            this.$message.success("成功")
+          }
+          this.newPlate.title = ''
+          this.newPlate.index = -1
+          this.newPlate.image = ''
+          this.newPlate.linkTo = ''
+        })
+
       },
+
+      onNewPlateImageUploadSuccess(e) {
+        this.newPlate.image = e
+      },
+
+
+      edit(row) {
+        this.$router.push({name: 'coupons', params: {_id: row._id}})
+      },
+
       addPlate() {
-        this.plates.push({})
-      },
-      addNew(){
-        if (!this.id1) {
-          this.$message.error("请填写商家ID")
-          return
-        }
-        if (!this.desc1) {
-          this.$message.error("请填推广文案")
-          return
-        }
-        if (!this.image1) {
-          this.$message.error("上传推广图片")
-          return
-        }
-        this.plates1.items.push({storeId:this.id1,desc:this.desc1,image: this.image1})
-        this.id1 = ''
-        this.desc1 = ''
-        this.image1 = ''
-      },
-
-      addNew2(){
-        if (!this.id2) {
-          this.$message.error("请填写商家ID")
-          return
-        }
-        if (!this.desc2) {
-          this.$message.error("请填推广文案")
-          return
-        }
-        if (!this.image2) {
-          this.$message.error("上传推广图片")
-          return
-        }
-        this.plates2.items.push({storeId:this.id2,desc:this.desc2,image: this.image2})
-        this.id2 = ''
-        this.desc2 = ''
-        this.image2 = ''
-      },
-
-      addNew3(){
-        if (!this.id3) {
-          this.$message.error("请填写商家ID")
-          return
-        }
-        if (!this.desc3) {
-          this.$message.error("请填推广文案")
-          return
-        }
-        if (!this.image3) {
-          this.$message.error("上传推广图片")
-          return
-        }
-        this.plates3.items.push({storeId:this.id3,desc:this.desc3,image: this.image3})
-        this.id3 = ''
-        this.desc3 = ''
-        this.image3 = ''
-      },
-
-      // plate 1
-      onP1Success(e){
-        this.plates1.image = e
-        this.$message.success("上传超实惠板块图片成功")
-      },
-      onUploadSuccess1(e) {
-        this.image1 = e
-        this.$message.success("上传超实惠板块图片成功")
-      },
-
-      // plate 2
-      onP2Success(e){
-        this.plates2.image = e
-        this.$message.success("上传最新鲜板块图片成功")
-      },
-      onUploadSuccess2(e) {
-        this.image2 = e
-        this.$message.success("上传最新鲜板块图片成功")
-      },
-
-      // plate 2
-      onP3Success(e){
-        this.plates3.image = e
-        this.$message.success("上传生活丽人板块图片成功")
-      },
-      onUploadSuccess3(e) {
-        this.image3 = e
-        this.$message.success("上传生活丽人板块图片成功")
-      },
-
-      doUpdate(){
-        this.plates1.tp = 2
-        axios.post('http://localhost:8090/updateplate',this.plates1).then(resp => {
-          if (resp.status != 200 ){
-            this.$message.error("更新失败")
-          }else {
-            this.$message.success("成功")
-          }
-        })
-      },
-
-      doUpdate2(){
-        this.plates2.tp = 2
-        axios.post('http://localhost:8090/updateplate',this.plates2).then(resp => {
-          if (resp.status != 200 ){
-            this.$message.error("更新失败")
-          }else {
-            this.$message.success("成功")
-          }
-        })
-      },
-
-      doUpdate3(){
-        this.plates3.tp = 2
-        axios.post('http://localhost:8090/updateplate',this.plates3).then(resp => {
-          if (resp.status != 200 ){
-            this.$message.error("更新失败")
-          }else {
-            this.$message.success("成功")
-          }
-        })
+        this.dialogFormVisible = true
       },
 
       submitUpload(index) {
         switch (index) {
-          case 1:
-            this.$refs.p1.submit();
-            break
-          case 2:
-            this.$refs.p1Item.submit();
-            break
-          case 3:
-            this.$refs.p2.submit();
-            break
-          case 4:
-            this.$refs.p2Item.submit();
-            break
-          case 5:
-            this.$refs.p3.submit();
-            break
-          case 6:
-            this.$refs.p3Item.submit();
-            break
+          case 10:
+            this.$refs.newPlate.submit();
         }
       }
     },
     mounted() {
       axios.get('http://localhost:8090/plates').then(resp => {
         this.plates = resp.data.data
-        this.plates1 = resp.data.data[0]
-        this.plates2 = resp.data.data[1]
-        this.plates3 = resp.data.data[2]
       })
     }
   }

@@ -39,7 +39,7 @@ export default {
         {name:'/components/pubstores',navItem:'商家发布'},
         {name:'/components/stores',navItem:'商家列表'},
         {name:'/components/plates',navItem:'推荐板块'},
-        {name:'/components/coupons',navItem:'优惠发放'},
+        {name:'/components/coupons',navItem:'板块详情'},
         {name:'/components/users',navItem:'用户列表'},
       ]
     }

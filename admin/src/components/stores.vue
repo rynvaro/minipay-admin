@@ -6,6 +6,15 @@
         <el-input placeholder="搜索商家" v-model="q" @change="search" clearable></el-input>
       </el-col>
     </el-row>
+    <el-dialog
+      width="30%"
+      @close="closeCode"
+      :visible.sync="innerVisible"
+      append-to-body>
+        <div class="qrcode">
+          <div id="qrcode" ref="qrcode"></div>
+      </div>
+    </el-dialog>
     <el-table
           :data="stores"
           style="width: 100%">
@@ -17,7 +26,7 @@
           <el-table-column
             prop="storeName"
             label="商家名称"
-            width="180">
+            width="100">
           </el-table-column>
           <el-table-column
             prop="storeDesc"
@@ -30,9 +39,11 @@
           <el-table-column
             fixed="right"
             label="操作"
-            width="100">
+            width="200">
             <template slot-scope="scope">
               <el-button @click="handleClick(scope.row)" type="text" size="small">编辑</el-button>
+              <el-button @click="handleDelete(scope.row, scope.$index)" type="text" size="small">删除</el-button>
+              <el-button @click="showQRCode(scope.row)" type="text" size="small">查看二维码</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -41,22 +52,52 @@
 
 <script>
   import axios from 'axios'
+  import QRCode from 'qrcodejs2'
   export default {
     data() {
       return {
         stores:[],
         q: '',
+        qrcode: '',
+        innerVisible: false,
       }
     },
     methods: {
       handleClick(row) {
         this.$router.push({name: 'pubstores', params: {_id: row._id}})
       },
+      handleDelete(row,index){
+         axios.post('http://localhost:8090/storedelete',{tp:'storedelete',_id: row._id}).then(resp => {
+           if (resp.status == 200) {
+             this.$message.success("删除成功")
+             this.stores.splice(index,1)
+           }else {
+             this.$message.error("删除失败")
+           }
+         })
+      },
       search() {
         axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
           this.stores = resp.data.data
         })
-      }
+      },
+      showQRCode(row) {
+        this.innerVisible = true
+        this.qrcode = row._id
+        this.$nextTick(() => {
+          this.createQrcode()
+        })
+      },
+      createQrcode () {
+        this.qr = new QRCode('qrcode', {
+          width: 150,
+          height: 150,
+          text: this.qrcode
+        })
+      },
+      closeCode () {
+        this.$refs.qrcode.innerHTML = ''
+      },
     },
     mounted() {
       axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
@@ -77,6 +118,13 @@
 
   .el-col {
     border-radius: 4px;
+  }
+
+  .qrcode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
   }
 
   .title {

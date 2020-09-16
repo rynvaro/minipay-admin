@@ -5,6 +5,7 @@ import coupons from '@/components/coupons'
 import pubstores from '@/components/pubstores'
 import stores from '@/components/stores'
 import users from '@/components/users'
+import events from '@/components/events'
 
 
 Vue.use(Router)
@@ -34,6 +35,11 @@ export default new Router({
       path: '/components/users',
       name: 'users',
       component: users
+    },
+    {
+      path: '/components/events',
+      name: 'events',
+      component: events
     }
   ]
 })

@@ -41,6 +41,7 @@ export default {
         {name:'/components/plates',navItem:'推荐板块'},
         {name:'/components/coupons',navItem:'板块详情'},
         {name:'/components/users',navItem:'用户列表'},
+        {name:'/components/events',navItem:'活动列表'},
       ]
     }
   },

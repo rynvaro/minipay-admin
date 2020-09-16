@@ -18,9 +18,19 @@
             <span style="margin-left: 10px">{{ scope.row.index }}</span>
           </template>
         </el-table-column>
+        <el-table-column
+          label="状态"
+          width="200">
+          <template slot-scope="scope">
+            <span style="margin-left: 10px" v-if="scope.row.status === 1" >正常显示</span>
+            <span style="margin-left: 10px" v-if="scope.row.status === 0" >已隐藏</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="500">
           <template slot-scope="scope">
             <el-button type="text" @click="edit(scope.row)">编辑</el-button>
+            <el-button type="text" @click="hide(scope.row, scope.$index)">隐藏</el-button>
+            <el-button type="text" @click="show(scope.row, scope.$index)">显示</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -68,9 +78,6 @@
             </el-select>
         </el-col>
       </el-row>
-
-
-
 	    <div slot="footer" class="dialog-footer">
 	      <el-button @click="dialogFormVisible = false">取 消</el-button>
 	      <el-button type="primary" @click="doAddNewPlate">确 定</el-button>
@@ -167,7 +174,26 @@
       edit(row) {
         this.$router.push({name: 'coupons', params: {_id: row._id}})
       },
-
+      hide(row, index) {
+        axios.post('http://localhost:8090/proxy',{tp: 'switchplatestatus',_id: row._id, status: 0}).then(resp => {
+          if (resp.status == 200) {
+            this.$message.success("已隐藏")
+            this.plates[index].status = 0
+          }else {
+            this.$message.error("操作失败")
+          }
+        })
+      },
+      show(row, index) {
+        axios.post('http://localhost:8090/proxy',{tp: 'switchplatestatus',_id: row._id, status: 1}).then(resp => {
+         if (resp.status == 200) {
+           this.$message.success("已显示")
+           this.plates[index].status = 1
+         }else {
+           this.$message.error("操作失败")
+         }
+        })
+      },
       addPlate() {
         this.dialogFormVisible = true
       },

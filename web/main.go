@@ -76,6 +76,14 @@ func main() {
 	r.POST("/updateuser", updateuser)
 	r.POST("/addcoupon", addcoupon)
 	r.GET("/store", store)
+	r.POST("/storedelete", storedelete)
+
+	r.GET("/events", events)
+	r.POST("/eventadd", eventadd)
+	r.POST("/eventdelete", eventdelete)
+	r.POST("/eventupdate", eventupdate)
+
+	r.POST("/proxy", proxy)
 
 	r.OPTIONS("/upload", options)
 	r.OPTIONS("/publish", options)
@@ -88,6 +96,12 @@ func main() {
 	r.OPTIONS("/store", options)
 	r.OPTIONS("/addplate", options)
 	r.OPTIONS("/plate", options)
+	r.OPTIONS("/events", options)
+	r.OPTIONS("/eventadd", options)
+	r.OPTIONS("/eventdelete", options)
+	r.OPTIONS("/eventupdate", options)
+	r.OPTIONS("/storedelete", options)
+	r.OPTIONS("/proxy", options)
 
 	box := packr.NewBox("dist")
 	static := packr.NewBox("dist/static")
@@ -110,32 +124,136 @@ func main() {
 	r.Run(":8090")
 }
 
+func proxy(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	resp, err := doRequest("consolecommon", string(data))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func storedelete(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := doRequest("consolecommon", string(data))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func eventdelete(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := doRequest("consolecommon", string(data))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func eventupdate(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := doRequest("consolecommon", string(data))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func eventadd(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := doRequest("consolecommon", string(data))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func events(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	params := `{"tp":"events"}`
+
+	resp, err := doRequest("consolecommon", params)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
 func plate(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	id := c.Request.FormValue("id")
 	params := `{"_id":"` + id + `", "tp": 3}`
-	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consoleplates"), "application/json", strings.NewReader(params))
+
+	resp, err := doRequest("consoleplates", params)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "internal server error")
+		c.Status(http.StatusInternalServerError)
 		return
+	}
+
+	c.String(http.StatusOK, resp)
+}
+
+func doRequest(funcName string, params string) (string, error) {
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, funcName), "application/json", strings.NewReader(params))
+	if err != nil {
+		return "", err
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
+		return "", err
 	}
 	fmt.Println(string(data))
 	r := &Resp{}
 	if err := json.Unmarshal(data, r); err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
+		return "", err
 	}
 	if r.Errcode != 0 {
-		c.Status(http.StatusInternalServerError)
-		return
+		return "", fmt.Errorf("faied")
 	}
-	c.String(http.StatusOK, r.RespData)
+	return r.RespData, nil
 }
 
 func store(c *gin.Context) {

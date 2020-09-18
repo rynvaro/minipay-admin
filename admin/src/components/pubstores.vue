@@ -534,6 +534,7 @@
       },
       onUploadStoreImageSuccess(e) {
         this.storeImages.push(e)
+        this.banners.push({isVideo: false, url: e})
         this.$message.success("上传店铺门头成功")
       },
       onUploadProductImageSuccess(e) {
@@ -542,6 +543,7 @@
       },
       onUploadPromoteImageSuccess(e) {
         this.promoteImages.push(e)
+        this.banners.push({isVideo: false, url: e})
         this.$message.success("上传产品图片成功")
       },
 

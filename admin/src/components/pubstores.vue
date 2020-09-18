@@ -632,6 +632,7 @@
           this.merchantName = store.merchantName
           this.merchantPhone = store.merchantPhone
           this.merchantBankCard = store.merchantBankCard
+          this.bank = store.bank
 
           this.tmpFiles = resp.data.file_list
           for (var i = 0; i < this.tmpFiles.length; i ++) {

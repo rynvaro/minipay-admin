@@ -12,10 +12,7 @@
                  text-color="#fff"
                  active-text-color="#ffd04b">
                 <el-menu-item v-for="(item,i) in navList" :key="i" :index="item.name" @click="itemclick(i)">
-                  <template slot="title">
-                    <i class="el-icon-s-platform"></i>
-                    <span> {{ item.navItem }}</span>
-                  </template>
+                  <template slot="title"><i class="el-icon-s-platform"></i><span> {{ item.navItem }}</span></template>
                 </el-menu-item>
               </el-menu>
             </el-col>
@@ -42,6 +39,7 @@ export default {
         {name:'/components/coupons',navItem:'板块详情'},
         {name:'/components/users',navItem:'用户列表'},
         {name:'/components/events',navItem:'活动列表'},
+        {name:'/components/finance',navItem:'财务板块'},
       ]
     }
   },

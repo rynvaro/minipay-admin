@@ -6,6 +6,7 @@ import pubstores from '@/components/pubstores'
 import stores from '@/components/stores'
 import users from '@/components/users'
 import events from '@/components/events'
+import finance from '@/components/finance'
 
 
 Vue.use(Router)
@@ -40,6 +41,11 @@ export default new Router({
       path: '/components/events',
       name: 'events',
       component: events
+    },
+    {
+      path: '/components/finance',
+      name: 'finance',
+      component: finance
     }
   ]
 })

@@ -7,9 +7,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -109,18 +107,18 @@ func main() {
 	r.StaticFS("/web", box)
 	r.StaticFS("static", static)
 
-	go func() {
-		time.Sleep(time.Second)
-		indexUrl := "http://localhost:8090/web/#/components/pubstores"
-		switch runtime.GOOS {
-		case "windows":
-			exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
-		case "darwin":
-			exec.Command(`open`, indexUrl).Start()
-		case "linux":
-			exec.Command(`xdg-open`, indexUrl).Start()
-		}
-	}()
+	// go func() {
+	// 	time.Sleep(time.Second)
+	// 	indexUrl := "http://localhost:8090/web/#/components/pubstores"
+	// 	switch runtime.GOOS {
+	// 	case "windows":
+	// 		exec.Command(`cmd`, `/c`, `start`, indexUrl).Start()
+	// 	case "darwin":
+	// 		exec.Command(`open`, indexUrl).Start()
+	// 	case "linux":
+	// 		exec.Command(`xdg-open`, indexUrl).Start()
+	// 	}
+	// }()
 
 	r.Run(":8090")
 }

@@ -19,18 +19,23 @@
           :data="stores"
           style="width: 100%">
           <el-table-column
-            prop="_id"
-            label="ID"
-            width="280">
+            prop="merchantName"
+            label="商家姓名"
+            width="180">
+          </el-table-column>
+          <el-table-column
+            prop="merchantPhone"
+            label="联系方式"
+            width="180">
           </el-table-column>
           <el-table-column
             prop="storeName"
-            label="商家名称"
-            width="100">
+            label="店铺名称"
+            width="180">
           </el-table-column>
           <el-table-column
             prop="storeDesc"
-            label="描述">
+            label="店铺详情">
           </el-table-column>
           <el-table-column
             prop="address"

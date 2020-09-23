@@ -42,12 +42,21 @@
             label="地址">
           </el-table-column>
           <el-table-column
+            prop="deleted"
+            label="地址">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px" v-if="scope.row.deleted === 1" >已隐藏</span>
+              <span style="margin-left: 10px" v-if="scope.row.deleted === 0" >正常显示</span>
+            </template>
+          </el-table-column>
+          <el-table-column
             fixed="right"
             label="操作"
             width="200">
             <template slot-scope="scope">
               <el-button @click="handleClick(scope.row)" type="text" size="small">编辑</el-button>
-              <el-button @click="handleDelete(scope.row, scope.$index)" type="text" size="small">删除</el-button>
+              <el-button @click="handleDelete(scope.row, scope.$index)" type="text" size="small">隐藏</el-button>
+              <el-button @click="handleUnDelete(scope.row, scope.$index)" type="text" size="small">显示</el-button>
               <el-button @click="showQRCode(scope.row)" type="text" size="small">查看二维码</el-button>
             </template>
           </el-table-column>
@@ -72,12 +81,22 @@
         this.$router.push({name: 'pubstores', params: {_id: row._id}})
       },
       handleDelete(row,index){
-         axios.post('http://localhost:8090/storedelete',{tp:'storedelete',_id: row._id}).then(resp => {
+         axios.post('http://localhost:8090/storedelete',{tp:'storedelete',_id: row._id,deleted: 1}).then(resp => {
            if (resp.status == 200) {
-             this.$message.success("删除成功")
-             this.stores.splice(index,1)
+             this.$message.success("隐藏成功")
+             this.stores[index].deleted = 1
            }else {
-             this.$message.error("删除失败")
+             this.$message.error("隐藏失败")
+           }
+         })
+      },
+      handleUnDelete(row,index){
+         axios.post('http://localhost:8090/storedelete',{tp:'storedelete',_id: row._id,deleted: 0}).then(resp => {
+           if (resp.status == 200) {
+             this.$message.success("显示成功")
+             this.stores[index].deleted = 0
+           }else {
+             this.$message.error("显示失败")
            }
          })
       },

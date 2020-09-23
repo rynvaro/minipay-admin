@@ -40,6 +40,7 @@ export default {
         {name:'/components/users',navItem:'用户列表'},
         {name:'/components/events',navItem:'活动列表'},
         {name:'/components/finance',navItem:'财务板块'},
+        {name:'/components/withdraws',navItem:'提现板块'},
       ]
     }
   },

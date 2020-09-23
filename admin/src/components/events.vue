@@ -49,6 +49,15 @@
               </el-col>
             </el-row>
 
+            <el-row>
+              <el-col :span="3">
+                <div class="title">位置：</div>
+              </el-col>
+              <el-col :span="18">
+                <el-input placeholder="请输入位置" v-model="event.index" clearable></el-input>
+              </el-col>
+            </el-row>
+
           <el-row>
             <el-col :span="3">
               <div class="title">活动图片：</div>
@@ -103,6 +112,10 @@
           this.$message.error("请输入活动名称")
           return
         }
+        if (!this.event.index) {
+          this.$message.error("请填写轮播位置")
+          return
+        }
         if (!this.event.image) {
           this.$message.error("请上传活动图片")
           return
@@ -111,6 +124,7 @@
           this.$message.error("请填写跳转连接")
           return
         }
+
         if (type == 1) {
           this.event.tp = 'eventadd'
           axios.post('http://localhost:8090/eventadd',this.event).then(resp => {

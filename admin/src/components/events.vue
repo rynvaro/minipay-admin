@@ -15,8 +15,13 @@
             width="100">
           </el-table-column>
           <el-table-column
-            prop="image"
-            label="图片">
+            prop="btnText"
+            label="按钮文字"
+            width="100">
+          </el-table-column>
+          <el-table-column
+            prop="index"
+            label="位置">
           </el-table-column>
           <el-table-column
             fixed="right"
@@ -60,14 +65,42 @@
 
           <el-row>
             <el-col :span="3">
-              <div class="title">活动图片：</div>
+              <div class="title">轮播图片：</div>
             </el-col>
             <el-col :span="8">
                <el-upload class="upload-demo" ref="item" action="http://localhost:8090/upload" :on-success="onItemUploadSuccess" :auto-upload="false">
                  <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-                 <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload">上传到服务器</el-button>
+                 <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(1)">上传到服务器</el-button>
                  <div slot="tip" class="el-upload__tip"></div>
                </el-upload>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="3">
+              <div class="title">详情图片：</div>
+            </el-col>
+            <el-col :span="8">
+               <el-upload class="upload-demo" ref="itemDetail" action="http://localhost:8090/upload" :on-success="onDetailUploadSuccess" :auto-upload="false">
+                 <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+                 <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器</el-button>
+                 <div slot="tip" class="el-upload__tip"></div>
+               </el-upload>
+            </el-col>
+            <el-col :span="3">
+              <div class="title">按钮文字：</div>
+            </el-col>
+            <el-col :span="6">
+              <el-input placeholder="详情页按钮文字" v-model="event.btnText" clearable></el-input>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="5">
+              <div class="title">详情页跳转连接：</div>
+            </el-col>
+            <el-col :span="15">
+              <el-input placeholder="详情页跳转连接" v-model="event.detailLink" clearable></el-input>
             </el-col>
           </el-row>
 
@@ -120,10 +153,22 @@
           this.$message.error("请上传活动图片")
           return
         }
-        if (!this.event.link) {
-          this.$message.error("请填写跳转连接")
+        if (!this.event.link && !this.event.detailImage) {
+          this.$message.error("跳转连接和详情图片至少填写一个")
           return
         }
+
+        if (this.event.detailImage) {
+          if (!this.event.btnText) {
+            this.$message.error("请输入按钮文字")
+            return
+          }
+          if (!this.event.detailLink) {
+            this.$message.error("请输入详情页跳转连接")
+            return
+          }
+        }
+
 
         if (type == 1) {
           this.event.tp = 'eventadd'
@@ -131,6 +176,7 @@
             if (resp.status == 200) {
               this.$message.success("添加成功")
               this.events.push(this.event)
+              this.event = {}
             }else {
               this.$message.error("添加失败")
             }
@@ -166,11 +212,19 @@
         this.type = 2
         this.dialogFormVisible = true
       },
+      onDetailUploadSuccess(e) {
+        this.event.detailImage = e
+      },
       onItemUploadSuccess(e){
         this.event.image = e
       },
-      submitUpload(){
-        this.$refs.item.submit()
+      submitUpload(i){
+        if (i == 1) {
+          this.$refs.item.submit()
+        }else if (i == 2) {
+          this.$refs.itemDetail.submit()
+        }
+
       }
     },
     mounted() {

@@ -21,7 +21,7 @@ import (
 var access_token = ""
 
 const (
-	// env      = "dev-osmu3"
+	// env = "dev-osmu3"
 	env      = "release-8tcge"
 	baseURL  = "https://api.weixin.qq.com/tcb/invokecloudfunction"
 	funcName = "console"

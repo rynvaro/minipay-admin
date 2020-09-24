@@ -8,6 +8,7 @@ import users from '@/components/users'
 import events from '@/components/events'
 import finance from '@/components/finance'
 import withdraws from '@/components/withdraws'
+import others from '@/components/others'
 
 
 Vue.use(Router)
@@ -52,6 +53,11 @@ export default new Router({
       path: '/components/withdraws',
       name: 'withdraws',
       component: withdraws
+    },
+    {
+      path: '/components/others',
+      name: 'others',
+      component: others
     }
   ]
 })

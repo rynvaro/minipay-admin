@@ -5,6 +5,9 @@
       <el-col :span="10">
         <el-input placeholder="搜索商家" v-model="q" @change="search" clearable></el-input>
       </el-col>
+      <el-col :span="4">
+        <el-button @click="allQRcode">统一生成二维码</el-button>
+      </el-col>
     </el-row>
     <el-dialog
       width="30%"
@@ -77,6 +80,9 @@
       }
     },
     methods: {
+      allQRcode() {
+        this.$router.push({name: 'qrcodes', params: {stores: this.stores}})
+      },
       handleClick(row) {
         this.$router.push({name: 'pubstores', params: {_id: row._id}})
       },

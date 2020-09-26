@@ -9,6 +9,7 @@ import events from '@/components/events'
 import finance from '@/components/finance'
 import withdraws from '@/components/withdraws'
 import others from '@/components/others'
+import qrcodes from '@/components/qrcodes'
 
 
 Vue.use(Router)
@@ -58,6 +59,11 @@ export default new Router({
       path: '/components/others',
       name: 'others',
       component: others
+    },
+    {
+      path: '/components/qrcodes',
+      name: 'qrcodes',
+      component: qrcodes
     }
   ]
 })

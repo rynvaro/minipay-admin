@@ -260,6 +260,7 @@
 
 <script>
   import axios from 'axios'
+  import { Loading } from 'element-ui';
   export default {
     data() {
       return {
@@ -517,11 +518,16 @@
           "bank": this.bank,
           "merchantBankCard": this.merchantBankCard,
         }
+        let loadingInstance = Loading.service({ fullscreen: true });
         axios.post('http://localhost:8090/publish', data)
-          .then(resp => (
-            // this.$router.go(0),
-            this.$alert('发布成功')
-          ))
+          .then(resp => {
+            if (resp.status == 200) {
+              this.$alert('发布成功')
+            }else {
+              this.$alert('发布失败')
+            }
+            loadingInstance.close()
+          })
 
       },
       onUploadVideoSuccess(e) {

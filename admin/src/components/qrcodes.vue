@@ -5,6 +5,7 @@
         <div class="qrcodeItem" v-for="(item, index) in stores" >
           <div :id="item._id" :ref="item._id"></div>
           <div>
+            <span>{{index}}-</span>
             <span>{{item.storeName}}</span>
             <el-button type="text" @click="downloadImage(index)">下载</el-button>
           </div>
@@ -16,6 +17,7 @@
 
 <script>
   import QRCode from 'qrcodejs2'
+  import moment from 'moment'
   export default {
     name: 'qrcodes',
     data() {
@@ -29,21 +31,21 @@
         let a = document.createElement('a')
         a.href = myCanvas[0].toDataURL('image/png')
         if (!this.stores[index].storeName) {
-          a.download = this.stores[index]._id
+          a.download = moment(this.stores[index].createdAt).format("YYYYMMDDHHMMSS") + '-' + index +'-'+ this.stores[index]._id
         }else {
-          a.download = this.stores[index].storeName
+          a.download = moment(this.stores[index].createdAt).format("YYYYMMDDHHMMSS") + '-' + index +'-'+ this.stores[index].storeName
         }
         a.click()
       },
       downloadAll() {
-        for (var i = 0; i<this.stores.length; i++ ) {
-          let myCanvas = document.getElementById(this.stores[i]._id).getElementsByTagName('canvas');
+        for (var index = 0; index<this.stores.length; index++ ) {
+          let myCanvas = document.getElementById(this.stores[index]._id).getElementsByTagName('canvas');
           let a = document.createElement('a')
           a.href = myCanvas[0].toDataURL('image/png')
-          if (!this.stores[i].storeName) {
-            a.download = this.stores[i]._id
+          if (!this.stores[index].storeName) {
+            a.download = moment(this.stores[index].createdAt).format("YYYYMMDDHHMMSS") + '-' + index +'-'+ this.stores[index]._id
           }else {
-            a.download = this.stores[i].storeName
+            a.download = moment(this.stores[index].createdAt).format("YYYYMMDDHHMMSS") + '-' + index +'-'+ this.stores[index].storeName
           }
           a.click()
         }

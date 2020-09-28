@@ -8,6 +8,9 @@
       <el-col :span="4">
         <el-button @click="allQRcode">统一生成二维码</el-button>
       </el-col>
+      <el-col :span="4">
+        <span>本页条数：{{stores.length}}</span>
+      </el-col>
     </el-row>
     <el-dialog
       width="30%"
@@ -61,15 +64,26 @@
               <el-button @click="handleDelete(scope.row, scope.$index)" type="text" size="small">隐藏</el-button>
               <el-button @click="handleUnDelete(scope.row, scope.$index)" type="text" size="small">显示</el-button>
               <el-button @click="showQRCode(scope.row)" type="text" size="small">查看二维码</el-button>
+              <el-button @click="handleHardDelete(scope.row, scope.$index)" type="text" size="small">硬删除</el-button>
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              :current-page="currentPage"
+              :page-sizes="[10, 20, 30, 50, 100]"
+              :page-size="10"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount">
+            </el-pagination>
   </div>
 </template>
 
 <script>
   import axios from 'axios'
   import QRCode from 'qrcodejs2'
+  import { Loading } from 'element-ui';
   export default {
     data() {
       return {
@@ -77,14 +91,50 @@
         q: '',
         qrcode: '',
         innerVisible: false,
+        currentPage: 1,
+        pageSize: 10,
+        totalCount: 0,
       }
     },
     methods: {
+      handleSizeChange(e) {
+        this.pageSize = e
+        this.currentPage = 1
+        axios.post('http://localhost:8090/stores',{q: '',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.stores = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+        })
+      },
+      handleCurrentChange(e) {
+        this.currentPage = e
+        axios.post('http://localhost:8090/stores',{q: '',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.stores = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+        })
+      },
       allQRcode() {
         this.$router.push({name: 'qrcodes', params: {stores: this.stores}})
       },
       handleClick(row) {
         this.$router.push({name: 'pubstores', params: {_id: row._id}})
+      },
+      handleHardDelete(row,index) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        axios.post('http://localhost:8090/storedelete',{tp:'storedeletehard',_id: row._id}).then(resp => {
+          if (resp.status == 200) {
+            this.$message.success("删除成功")
+            this.stores.splice(index,1)
+          }else {
+            this.$message.error("删除失败")
+          }
+          loadingInstance.close()
+        })
       },
       handleDelete(row,index){
          axios.post('http://localhost:8090/storedelete',{tp:'storedelete',_id: row._id,deleted: 1}).then(resp => {
@@ -107,7 +157,7 @@
          })
       },
       search() {
-        axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
+        axios.post('http://localhost:8090/stores',{q: ''}).then(resp => {
           this.stores = resp.data.data
         })
       },
@@ -130,8 +180,12 @@
       },
     },
     mounted() {
-      axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
+      axios.post('http://localhost:8090/stores',{q: '',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+        console.log(resp.data)
         this.stores = resp.data.data
+        this.currentPage = resp.data.currentPage
+        this.pageSize = resp.data.pageSize
+        this.totalCount = resp.data.totalCount
       })
     }
   }

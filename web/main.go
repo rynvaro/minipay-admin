@@ -68,7 +68,7 @@ func main() {
 
 	r.POST("/publish", publish)
 	r.POST("/upload", upload)
-	r.GET("/stores", stores)
+	r.POST("/stores", stores)
 	r.GET("/plates", plates)
 	r.POST("/updateplate", updateplate)
 	r.POST("/addplate", addplate)
@@ -552,16 +552,19 @@ func plates(c *gin.Context) {
 func stores(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
-	q := c.Request.FormValue("q")
-	params := `{"q":"` + q + `"}`
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 
-	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consolestores"), "application/json", strings.NewReader(params))
+	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, "consolestores"), "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return

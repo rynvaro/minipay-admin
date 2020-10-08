@@ -157,7 +157,7 @@
          })
       },
       search() {
-        axios.post('http://localhost:8090/stores',{q: ''}).then(resp => {
+        axios.post('http://localhost:8090/stores',{q: this.q,currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
           this.stores = resp.data.data
         })
       },

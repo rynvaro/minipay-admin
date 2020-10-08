@@ -185,9 +185,12 @@
         rows.splice(index, 1)
       },
       addNewList() {
-        axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
+        axios.post('http://localhost:8090/stores',{q: this.q,currentPage: 1, pageSize: 20}).then(resp => {
           this.stores = resp.data.data
         })
+        // axios.get('http://localhost:8090/stores?q='+this.q).then(resp => {
+        //   this.stores = resp.data.data
+        // })
         this.dialogFormVisible = true
       },
       //

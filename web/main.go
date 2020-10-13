@@ -4,9 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -16,13 +22,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packr"
 	"github.com/google/uuid"
+	"github.com/nfnt/resize"
 )
 
-var access_token = ""
+var access_token = "38_8_BwGGTv69yaep-yK9UnClnZgYwDkzteHhYC6Snod5gIaWXj7mz7oW7GTsv_4Xn_Nh04bDrcZZVNX3d7Z10fO4tilX530ZMpzoEiNi6en1FDqiwr53vD64GJlLpmdOjIXd9H5RiHNQfuV1I8AXKhAIAIFS"
 
 const (
-	// env = "dev-osmu3"
-	env      = "release-8tcge"
+	env = "dev-osmu3"
+	// env      = "release-8tcge"
 	baseURL  = "https://api.weixin.qq.com/tcb/invokecloudfunction"
 	funcName = "console"
 )
@@ -84,6 +91,8 @@ func main() {
 	r.POST("/eventdelete", eventdelete)
 	r.POST("/eventupdate", eventupdate)
 
+	r.GET("/batch", batch)
+
 	r.POST("/proxy", proxy)
 
 	r.OPTIONS("/upload", options)
@@ -103,6 +112,7 @@ func main() {
 	r.OPTIONS("/eventupdate", options)
 	r.OPTIONS("/storedelete", options)
 	r.OPTIONS("/proxy", options)
+	r.OPTIONS("/batch", options)
 
 	box := packr.NewBox("dist")
 	static := packr.NewBox("dist/static")
@@ -123,6 +133,156 @@ func main() {
 	}()
 
 	r.Run(":8090")
+}
+
+type Store struct {
+	Id               string    `json:"_id"`
+	Address          string    `json:"address"`
+	AvgPrice         float64   `json:"avgPrice"`
+	Balance          float64   `json:"balance"`
+	Bank             string    `json:"bank"`
+	Banners          []*Banner `json:"banners"`
+	CreatedAt        int64     `json:"createdAt"`
+	Deleted          int       `json:"deleted"`
+	Discount         float64   `json:"discount"`
+	DiscountStart    int64     `json:"discountStart"`
+	DiscountEnd      int64     `json:"discountEnd"`
+	EndTime          string    `json:"endTime"`
+	GeoPoint         *GeoPoint `json:"geoPoint"`
+	Latitude         float64   `json:"latitude"`
+	Longitude        float64   `json:"longitude"`
+	MerchantBankCard string    `json:"merchantBankCard"`
+	MerchantName     string    `json:"merchantName"`
+	MerchantPhone    string    `json:"merchantPhone"`
+	OpenID           string    `json:"openid"`
+	Orders           int       `json:"orders"`
+	Password         string    `json:"password"`
+	ProductImages    []string  `json:"productImages"`
+	PromoteImages    []string  `json:"promoteImages"`
+	StartTime        string    `json:"startTime"`
+	StoreDesc        string    `json:"storeDesc"`
+	StoreImages      []string  `json:"storeImages"`
+	StoreName        string    `json:"storeName"`
+	StoreType        int       `json:"storeType"`
+	UpdatedAt        int64     `json:"updatedAt"`
+	UserInfo         *UserInfo `json:"userInfo"`
+	TempFileURL      string    `json:"tempFileUrl"`
+}
+
+type UserInfo struct {
+	AppID string `json:"appId"`
+}
+
+type GeoPoint struct {
+	Type        string    `json:"type"`
+	Coordinates []float64 `json:"coordinates"`
+}
+
+type Stores struct {
+	Data []*Store `json:"data"`
+}
+
+func batch(c *gin.Context) {
+	params := `{"currentPage":1, "tp":"list"}`
+	resp, err := doRequest("aaaaaaaa", params)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	stores := &Stores{}
+	if err := json.Unmarshal([]byte(resp), stores); err != nil {
+		panic(err)
+	}
+
+	fileIds := make([]string, 0)
+	for _, v := range stores.Data {
+		if len(v.PromoteImages) > 0 {
+			fileIds = append(fileIds, v.PromoteImages[0])
+		}
+
+	}
+	respFile, err := getTempFiles(fileIds)
+	if err != nil {
+		panic(err)
+	}
+	respFileMap := map[string]string{}
+	for _, v := range respFile {
+		respFileMap[v.FileID] = v.DownloadURL
+	}
+
+	fmt.Println(len(stores.Data))
+	for i := range stores.Data {
+		if len(stores.Data[i].PromoteImages) > 0 {
+			if durl, ok := respFileMap[stores.Data[i].PromoteImages[0]]; ok {
+				fmt.Println("resizing...", stores.Data[i].StoreName)
+				stores.Data[i].TempFileURL = durl
+				fileResp, err := http.Get(durl)
+				if err != nil {
+					panic(err)
+				}
+				downfileName := fmt.Sprintf("%v%v", time.Now().UnixNano(), filepath.Ext(durl))
+				out, err := os.Create(downfileName)
+				if err != nil {
+					panic(err)
+				}
+				_, err = io.Copy(out, fileResp.Body)
+				if err != nil {
+					panic(err)
+				}
+				out.Close()
+
+				file, err := os.Open(downfileName)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var img image.Image
+				if filepath.Ext(downfileName) == ".png" {
+					img, err = png.Decode(file)
+				} else {
+					img, err = jpeg.Decode(file)
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+				file.Close()
+				os.Remove(file.Name())
+
+				// resize to width 1000 using Lanczos resampling
+				// and preserve aspect ratio
+				m := resize.Resize(340, 0, img, resize.Lanczos3)
+
+				genFile := "gen" + downfileName
+				out, err = os.Create(genFile)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// write new image to file
+				if filepath.Ext(downfileName) == ".png" {
+					err = png.Encode(out, m)
+				} else {
+					err = jpeg.Encode(out, m, nil)
+				}
+				out.Close()
+				if err != nil {
+					fmt.Println(err)
+				}
+				// upload image
+				fid := doUpload(genFile)
+
+				params := `{"storeId":"` + stores.Data[i].Id + `", "tp":"update", "thumbnail":"` + fid + `"}`
+				_, err = doRequest("aaaaaaaa", params)
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Println("id: ", stores.Data[i].Id)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, stores)
 }
 
 func proxy(c *gin.Context) {
@@ -246,7 +406,7 @@ func doRequest(funcName string, params string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(data))
+	// fmt.Println(string(data))
 	r := &Resp{}
 	if err := json.Unmarshal(data, r); err != nil {
 		return "", err
@@ -373,7 +533,7 @@ func getTempFiles(fileIds []string) (fileList []*RespFileItem, err error) {
 		return nil, err
 	}
 	data, err = ioutil.ReadAll(resp.Body)
-	fmt.Println(string(data), err)
+	// fmt.Println(string(data), err)
 
 	rf := &struct {
 		ErrCode  int             `json:"errcode"`
@@ -639,7 +799,7 @@ func upload(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(string(data))
+	// fmt.Println(string(data))
 	uR := &uploadResp{}
 	if err := json.Unmarshal(data, uR); err != nil {
 		c.Status(http.StatusInternalServerError)
@@ -711,4 +871,77 @@ func options(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 	c.Writer.Header().Set("Access-Control-Expose-Headers", "*")
 	c.Status(http.StatusOK)
+}
+
+func doUpload(fpath string) string {
+
+	file, err := os.Open(fpath)
+	if err != nil {
+		panic(err)
+	}
+
+	uuid, _ := uuid.NewRandom()
+	path := "images/console/" + uuid.String() + filepath.Ext(file.Name())
+
+	body := `
+	{
+		"env": "` + env + `",
+		"path": "` + path + `"
+	}`
+	resp, err := http.Post(fmt.Sprintf("https://api.weixin.qq.com/tcb/uploadfile?access_token=%s", access_token), "application/json", strings.NewReader(body))
+	if err != nil {
+		panic(err)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	// fmt.Println(string(data))
+	uR := &uploadResp{}
+	if err := json.Unmarshal(data, uR); err != nil {
+		panic(err)
+	}
+
+	if uR.Errcode != 0 {
+		panic(err)
+	}
+	multipartBody := &bytes.Buffer{}
+	writer := multipart.NewWriter(multipartBody)
+
+	params := map[string]string{"key": path, "Signature": uR.Authorization, "x-cos-security-token": uR.Token, "x-cos-meta-fileid": uR.CosFileId}
+
+	for key, val := range params {
+		err = writer.WriteField(key, val)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	part, err := writer.CreateFormFile("file", filepath.Base(path))
+	if err != nil {
+		panic(err)
+	}
+	fileData, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := part.Write(fileData); err != nil {
+		panic(err)
+	}
+
+	if err := writer.Close(); err != nil {
+		panic(err)
+	}
+
+	resp, err = http.Post(uR.Url, writer.FormDataContentType(), multipartBody)
+	if err != nil {
+		panic(err)
+	}
+	// data, err = ioutil.ReadAll(resp.Body)
+	// fmt.Println(string(data), err)
+	os.Remove(fpath)
+
+	return uR.FileID
 }

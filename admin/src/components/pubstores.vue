@@ -138,7 +138,7 @@
         <div class="title">推广图片：</div>
       </el-col>
       <el-col :span="4">
-        <el-upload class="upload-demo" ref="promoteImage" action="http://localhost:8090/upload" :multiple="true" :limit="6"
+        <el-upload class="upload-demo" ref="promoteImage" action="http://localhost:8090/uploadresize" :multiple="true" :limit="6"
           :file-list="promoteImageList" :on-success="onUploadPromoteImageSuccess" :auto-upload="false">
           <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
           <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(5)">上传到服务器</el-button>
@@ -407,6 +407,7 @@
         merchantPhone: '',
         bank: '',
         merchantBankCard: '',
+        thumbnail: '',
       }
     },
     methods: {
@@ -462,6 +463,11 @@
           return
         }
 
+        if (!this.thumbnail) {
+          this.$message.error(msg + "请上传推广图片(thumbnail)")
+          return
+        }
+
         if (!this.longitude || !this.latitude) {
           this.$message.error(msg + "请输入经纬度信息")
           return
@@ -512,6 +518,7 @@
           "storeImages": this.storeImages,
           "productImages": this.productImages,
           "promoteImages": this.promoteImages,
+          "thumbnail": this.thumbnail,
 
           "merchantName": this.merchantName,
           "merchantPhone": this.merchantPhone,
@@ -548,6 +555,7 @@
         this.$message.success("上传产品图片成功")
       },
       onUploadPromoteImageSuccess(e) {
+        this.thumbnail = e
         this.promoteImages.push(e)
         this.banners.push({isVideo: false, url: e})
         this.$message.success("上传产品图片成功")
@@ -641,6 +649,7 @@
           this.merchantPhone = store.merchantPhone
           this.merchantBankCard = store.merchantBankCard
           this.bank = store.bank
+          this.thumbnail = store.thumbnail
 
           this.tmpFiles = resp.data.file_list
           for (var i = 0; i < this.tmpFiles.length; i ++) {

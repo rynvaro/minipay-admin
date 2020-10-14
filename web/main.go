@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"io"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
@@ -16,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,11 +25,11 @@ import (
 	"github.com/nfnt/resize"
 )
 
-var access_token = "38_8_BwGGTv69yaep-yK9UnClnZgYwDkzteHhYC6Snod5gIaWXj7mz7oW7GTsv_4Xn_Nh04bDrcZZVNX3d7Z10fO4tilX530ZMpzoEiNi6en1FDqiwr53vD64GJlLpmdOjIXd9H5RiHNQfuV1I8AXKhAIAIFS"
+var access_token = ""
 
 const (
-	env = "dev-osmu3"
-	// env      = "release-8tcge"
+	// env = "dev-osmu3"
+	env      = "release-8tcge"
 	baseURL  = "https://api.weixin.qq.com/tcb/invokecloudfunction"
 	funcName = "console"
 )
@@ -75,6 +75,7 @@ func main() {
 
 	r.POST("/publish", publish)
 	r.POST("/upload", upload)
+	r.POST("/uploadresize", uploadResize)
 	r.POST("/stores", stores)
 	r.GET("/plates", plates)
 	r.POST("/updateplate", updateplate)
@@ -91,11 +92,12 @@ func main() {
 	r.POST("/eventdelete", eventdelete)
 	r.POST("/eventupdate", eventupdate)
 
-	r.GET("/batch", batch)
+	// r.GET("/batch", batch)
 
 	r.POST("/proxy", proxy)
 
 	r.OPTIONS("/upload", options)
+	r.OPTIONS("/uploadresize", options)
 	r.OPTIONS("/publish", options)
 	r.OPTIONS("/stores", options)
 	r.OPTIONS("/plates", options)
@@ -167,6 +169,7 @@ type Store struct {
 	UpdatedAt        int64     `json:"updatedAt"`
 	UserInfo         *UserInfo `json:"userInfo"`
 	TempFileURL      string    `json:"tempFileUrl"`
+	Tp               string    `json:"tp"`
 }
 
 type UserInfo struct {
@@ -183,106 +186,65 @@ type Stores struct {
 }
 
 func batch(c *gin.Context) {
-	params := `{"currentPage":1, "tp":"list"}`
-	resp, err := doRequest("aaaaaaaa", params)
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
 
-	stores := &Stores{}
-	if err := json.Unmarshal([]byte(resp), stores); err != nil {
-		panic(err)
-	}
+	stores := make([]*Store, 0)
 
-	fileIds := make([]string, 0)
-	for _, v := range stores.Data {
-		if len(v.PromoteImages) > 0 {
-			fileIds = append(fileIds, v.PromoteImages[0])
+	for i := 1; i <= 6; i++ {
+		params := `{"currentPage":` + strconv.Itoa(i) + `, "tp":"list"}`
+		resp, err := doRequest("aaaaaaaa", params)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
 		}
 
-	}
-	respFile, err := getTempFiles(fileIds)
-	if err != nil {
-		panic(err)
-	}
-	respFileMap := map[string]string{}
-	for _, v := range respFile {
-		respFileMap[v.FileID] = v.DownloadURL
+		s := &Stores{}
+		if err := json.Unmarshal([]byte(resp), s); err != nil {
+			panic(err)
+		}
+		stores = append(stores, s.Data...)
 	}
 
-	fmt.Println(len(stores.Data))
-	for i := range stores.Data {
-		if len(stores.Data[i].PromoteImages) > 0 {
-			if durl, ok := respFileMap[stores.Data[i].PromoteImages[0]]; ok {
-				fmt.Println("resizing...", stores.Data[i].StoreName)
-				stores.Data[i].TempFileURL = durl
-				fileResp, err := http.Get(durl)
-				if err != nil {
-					panic(err)
-				}
-				downfileName := fmt.Sprintf("%v%v", time.Now().UnixNano(), filepath.Ext(durl))
-				out, err := os.Create(downfileName)
-				if err != nil {
-					panic(err)
-				}
-				_, err = io.Copy(out, fileResp.Body)
-				if err != nil {
-					panic(err)
-				}
-				out.Close()
-
-				file, err := os.Open(downfileName)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				var img image.Image
-				if filepath.Ext(downfileName) == ".png" {
-					img, err = png.Decode(file)
-				} else {
-					img, err = jpeg.Decode(file)
-				}
-				if err != nil {
-					log.Fatal(err)
-				}
-				file.Close()
-				os.Remove(file.Name())
-
-				// resize to width 1000 using Lanczos resampling
-				// and preserve aspect ratio
-				m := resize.Resize(340, 0, img, resize.Lanczos3)
-
-				genFile := "gen" + downfileName
-				out, err = os.Create(genFile)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				// write new image to file
-				if filepath.Ext(downfileName) == ".png" {
-					err = png.Encode(out, m)
-				} else {
-					err = jpeg.Encode(out, m, nil)
-				}
-				out.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-				// upload image
-				fid := doUpload(genFile)
-
-				params := `{"storeId":"` + stores.Data[i].Id + `", "tp":"update", "thumbnail":"` + fid + `"}`
-				_, err = doRequest("aaaaaaaa", params)
-				if err != nil {
-					fmt.Println(err)
-				}
-				fmt.Println("id: ", stores.Data[i].Id)
-			}
+	for _, v := range stores {
+		if v.MerchantPhone == "1" {
+			continue
+		}
+		fmt.Println("uploading...", v.StoreName, v.MerchantPhone)
+		v.Tp = "addmerchant"
+		data, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println("error: ", err)
+			continue
+		}
+		_, err = doRequest("aaaaaaaa", string(data))
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 
-	c.JSON(http.StatusOK, stores)
+	// for i := range stores.Data {
+	// 	params := `{"storeId":"` + stores.Data[i].Id + `", "tp":"update", "thumbnail":"` + fid + `"}`
+	// 	_, err = doRequest("aaaaaaaa", params)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
+	// }
+
+	// m := map[string]int{}
+	// for _, v := range stores {
+	// 	if _, ok := m[v.MerchantPhone]; ok {
+	// 		m[v.MerchantPhone]++
+	// 	} else {
+	// 		m[v.MerchantPhone] = 1
+	// 	}
+	// }
+
+	// for k, v := range m {
+	// 	if v > 1 {
+	// 		fmt.Println(k, v)
+	// 	}
+	// }
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func proxy(c *gin.Context) {
@@ -855,6 +817,52 @@ func upload(c *gin.Context) {
 	c.String(http.StatusOK, uR.FileID)
 }
 
+func uploadResize(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var img image.Image
+	if filepath.Ext(header.Filename) == ".png" {
+		img, err = png.Decode(file)
+	} else {
+		img, err = jpeg.Decode(file)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	file.Close()
+
+	// resize to width 1000 using Lanczos resampling
+	// and preserve aspect ratio
+	m := resize.Resize(340, 0, img, resize.Lanczos3)
+
+	genFile := "gen" + header.Filename
+	out, err := os.Create(genFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// write new image to file
+	if filepath.Ext(header.Filename) == ".png" {
+		err = png.Encode(out, m)
+	} else {
+		err = jpeg.Encode(out, m, nil)
+	}
+	out.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	// upload image
+	fid := doUpload(genFile)
+
+	c.String(http.StatusOK, fid)
+}
+
 type uploadResp struct {
 	Errcode       int    `json:"errcode"`
 	Errmsg        string `json:"errms"`
@@ -941,7 +949,11 @@ func doUpload(fpath string) string {
 	}
 	// data, err = ioutil.ReadAll(resp.Body)
 	// fmt.Println(string(data), err)
-	os.Remove(fpath)
+	file.Close()
+	err = os.Remove(fpath)
+	if err != nil {
+		fmt.Println("remove: ", err)
+	}
 
 	return uR.FileID
 }

@@ -35,34 +35,16 @@ const (
 )
 
 func init() {
-	go func() {
-		for {
-			resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx9b588b2b3f090400&secret=08d530ef7af12573a04586491aff47a7")
-			if err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			data, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			r := &TokenResp{}
-
-			if err := json.Unmarshal(data, r); err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-			access_token = r.AccessToken
-			fmt.Println("token is: ", access_token)
-			time.Sleep(time.Minute * 60)
-		}
-	}()
+	resp, err := http.Get("http://47.115.137.96/token")
+	if err != nil {
+		panic(err)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(data))
+	access_token = string(data)
 }
 
 type TokenResp struct {
@@ -368,7 +350,7 @@ func doRequest(funcName string, params string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// fmt.Println(string(data))
+	fmt.Println(string(data))
 	r := &Resp{}
 	if err := json.Unmarshal(data, r); err != nil {
 		return "", err

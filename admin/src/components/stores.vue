@@ -49,22 +49,33 @@
           </el-table-column>
           <el-table-column
             prop="deleted"
-            label="地址">
+            label="是否显示">
             <template slot-scope="scope">
               <span style="margin-left: 10px" v-if="scope.row.deleted === 1" >已隐藏</span>
               <span style="margin-left: 10px" v-if="scope.row.deleted === 0" >正常显示</span>
             </template>
           </el-table-column>
           <el-table-column
+            prop="norake"
+            label="平台参与抽成">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px" v-if="scope.row.norake" >不参与</span>
+              <span style="margin-left: 10px" v-if="!scope.row.norake" >参与</span>
+            </template>
+          </el-table-column>
+          <el-table-column
             fixed="right"
             label="操作"
-            width="200">
+            width="300">
             <template slot-scope="scope">
               <el-button @click="handleClick(scope.row)" type="text" size="small">编辑</el-button>
               <el-button @click="handleDelete(scope.row, scope.$index)" type="text" size="small">隐藏</el-button>
               <el-button @click="handleUnDelete(scope.row, scope.$index)" type="text" size="small">显示</el-button>
               <el-button @click="showQRCode(scope.row)" type="text" size="small">查看二维码</el-button>
               <el-button @click="handleHardDelete(scope.row, scope.$index)" type="text" size="small">硬删除</el-button>
+              <el-button @click="rake(scope.row, scope.$index,0)" type="text" size="small">参与抽成</el-button>
+              <el-button @click="rake(scope.row, scope.$index,1)" type="text" size="small">不参与抽成</el-button>
+              <el-button @click="logout(scope.row, scope.$index)" type="text" size="small">清除登录状态</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -97,6 +108,39 @@
       }
     },
     methods: {
+      logout(row, index) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: row._id,
+          tp: "logout"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          loadingInstance.close()
+          this.$message.success("清除成功")
+        })
+      },
+      rake(row, index,e){
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: row._id,
+          norake: e,
+          tp: "rake"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          loadingInstance.close()
+          this.afterRake()
+        })
+      },
+      afterRake(){
+        let loadingInstance = Loading.service();
+        axios.post('http://localhost:8090/stores',{q: this.q,currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          this.stores = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
       handleSizeChange(e) {
         this.pageSize = e
         this.currentPage = 1

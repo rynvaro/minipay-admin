@@ -114,7 +114,7 @@
 
           <el-row>
             <el-col :span="8">
-               <el-upload class="upload-demo" ref="item" action="http://localhost:8090/upload" :on-success="onItemUploadSuccess" :auto-upload="false">
+               <el-upload class="upload-demo" ref="item" action="http://localhost:8090/uploadresize" :on-success="onItemUploadSuccess" :auto-upload="false">
                  <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
                  <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器</el-button>
                  <div slot="tip" class="el-upload__tip"></div>

@@ -4,18 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packr"
 	"github.com/google/uuid"
+	"github.com/nfnt/resize"
 )
 
 var access_token = ""
@@ -28,34 +35,16 @@ const (
 )
 
 func init() {
-	go func() {
-		for {
-			resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx9b588b2b3f090400&secret=08d530ef7af12573a04586491aff47a7")
-			if err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			data, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			r := &TokenResp{}
-
-			if err := json.Unmarshal(data, r); err != nil {
-				fmt.Println(err)
-				time.Sleep(time.Minute)
-				continue
-			}
-			access_token = r.AccessToken
-			fmt.Println("token is: ", access_token)
-			time.Sleep(time.Minute * 60)
-		}
-	}()
+	resp, err := http.Get("http://47.115.137.96/token")
+	if err != nil {
+		panic(err)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(data))
+	access_token = string(data)
 }
 
 type TokenResp struct {
@@ -68,6 +57,7 @@ func main() {
 
 	r.POST("/publish", publish)
 	r.POST("/upload", upload)
+	r.POST("/uploadresize", uploadResize)
 	r.POST("/stores", stores)
 	r.GET("/plates", plates)
 	r.POST("/updateplate", updateplate)
@@ -84,9 +74,12 @@ func main() {
 	r.POST("/eventdelete", eventdelete)
 	r.POST("/eventupdate", eventupdate)
 
+	// r.GET("/batch", batch)
+
 	r.POST("/proxy", proxy)
 
 	r.OPTIONS("/upload", options)
+	r.OPTIONS("/uploadresize", options)
 	r.OPTIONS("/publish", options)
 	r.OPTIONS("/stores", options)
 	r.OPTIONS("/plates", options)
@@ -103,6 +96,7 @@ func main() {
 	r.OPTIONS("/eventupdate", options)
 	r.OPTIONS("/storedelete", options)
 	r.OPTIONS("/proxy", options)
+	r.OPTIONS("/batch", options)
 
 	box := packr.NewBox("dist")
 	static := packr.NewBox("dist/static")
@@ -123,6 +117,116 @@ func main() {
 	}()
 
 	r.Run(":8090")
+}
+
+type Store struct {
+	Id               string    `json:"_id"`
+	Address          string    `json:"address"`
+	AvgPrice         float64   `json:"avgPrice"`
+	Balance          float64   `json:"balance"`
+	Bank             string    `json:"bank"`
+	Banners          []*Banner `json:"banners"`
+	CreatedAt        int64     `json:"createdAt"`
+	Deleted          int       `json:"deleted"`
+	Discount         float64   `json:"discount"`
+	DiscountStart    int64     `json:"discountStart"`
+	DiscountEnd      int64     `json:"discountEnd"`
+	EndTime          string    `json:"endTime"`
+	GeoPoint         *GeoPoint `json:"geoPoint"`
+	Latitude         float64   `json:"latitude"`
+	Longitude        float64   `json:"longitude"`
+	MerchantBankCard string    `json:"merchantBankCard"`
+	MerchantName     string    `json:"merchantName"`
+	MerchantPhone    string    `json:"merchantPhone"`
+	OpenID           string    `json:"openid"`
+	Orders           int       `json:"orders"`
+	Password         string    `json:"password"`
+	ProductImages    []string  `json:"productImages"`
+	PromoteImages    []string  `json:"promoteImages"`
+	StartTime        string    `json:"startTime"`
+	StoreDesc        string    `json:"storeDesc"`
+	StoreImages      []string  `json:"storeImages"`
+	StoreName        string    `json:"storeName"`
+	StoreType        int       `json:"storeType"`
+	UpdatedAt        int64     `json:"updatedAt"`
+	UserInfo         *UserInfo `json:"userInfo"`
+	TempFileURL      string    `json:"tempFileUrl"`
+	Tp               string    `json:"tp"`
+}
+
+type UserInfo struct {
+	AppID string `json:"appId"`
+}
+
+type GeoPoint struct {
+	Type        string    `json:"type"`
+	Coordinates []float64 `json:"coordinates"`
+}
+
+type Stores struct {
+	Data []*Store `json:"data"`
+}
+
+func batch(c *gin.Context) {
+
+	stores := make([]*Store, 0)
+
+	for i := 1; i <= 6; i++ {
+		params := `{"currentPage":` + strconv.Itoa(i) + `, "tp":"list"}`
+		resp, err := doRequest("aaaaaaaa", params)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		s := &Stores{}
+		if err := json.Unmarshal([]byte(resp), s); err != nil {
+			panic(err)
+		}
+		stores = append(stores, s.Data...)
+	}
+
+	for _, v := range stores {
+		if v.MerchantPhone == "1" {
+			continue
+		}
+		fmt.Println("uploading...", v.StoreName, v.MerchantPhone)
+		v.Tp = "addmerchant"
+		data, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println("error: ", err)
+			continue
+		}
+		_, err = doRequest("aaaaaaaa", string(data))
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	// for i := range stores.Data {
+	// 	params := `{"storeId":"` + stores.Data[i].Id + `", "tp":"update", "thumbnail":"` + fid + `"}`
+	// 	_, err = doRequest("aaaaaaaa", params)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
+	// }
+
+	// m := map[string]int{}
+	// for _, v := range stores {
+	// 	if _, ok := m[v.MerchantPhone]; ok {
+	// 		m[v.MerchantPhone]++
+	// 	} else {
+	// 		m[v.MerchantPhone] = 1
+	// 	}
+	// }
+
+	// for k, v := range m {
+	// 	if v > 1 {
+	// 		fmt.Println(k, v)
+	// 	}
+	// }
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func proxy(c *gin.Context) {
@@ -373,7 +477,7 @@ func getTempFiles(fileIds []string) (fileList []*RespFileItem, err error) {
 		return nil, err
 	}
 	data, err = ioutil.ReadAll(resp.Body)
-	fmt.Println(string(data), err)
+	// fmt.Println(string(data), err)
 
 	rf := &struct {
 		ErrCode  int             `json:"errcode"`
@@ -639,7 +743,7 @@ func upload(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(string(data))
+	// fmt.Println(string(data))
 	uR := &uploadResp{}
 	if err := json.Unmarshal(data, uR); err != nil {
 		c.Status(http.StatusInternalServerError)
@@ -695,6 +799,52 @@ func upload(c *gin.Context) {
 	c.String(http.StatusOK, uR.FileID)
 }
 
+func uploadResize(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var img image.Image
+	if filepath.Ext(header.Filename) == ".png" {
+		img, err = png.Decode(file)
+	} else {
+		img, err = jpeg.Decode(file)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	file.Close()
+
+	// resize to width 1000 using Lanczos resampling
+	// and preserve aspect ratio
+	m := resize.Resize(340, 0, img, resize.Lanczos3)
+
+	genFile := "gen" + header.Filename
+	out, err := os.Create(genFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// write new image to file
+	if filepath.Ext(header.Filename) == ".png" {
+		err = png.Encode(out, m)
+	} else {
+		err = jpeg.Encode(out, m, nil)
+	}
+	out.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	// upload image
+	fid := doUpload(genFile)
+
+	c.String(http.StatusOK, fid)
+}
+
 type uploadResp struct {
 	Errcode       int    `json:"errcode"`
 	Errmsg        string `json:"errms"`
@@ -711,4 +861,81 @@ func options(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 	c.Writer.Header().Set("Access-Control-Expose-Headers", "*")
 	c.Status(http.StatusOK)
+}
+
+func doUpload(fpath string) string {
+
+	file, err := os.Open(fpath)
+	if err != nil {
+		panic(err)
+	}
+
+	uuid, _ := uuid.NewRandom()
+	path := "images/console/" + uuid.String() + filepath.Ext(file.Name())
+
+	body := `
+	{
+		"env": "` + env + `",
+		"path": "` + path + `"
+	}`
+	resp, err := http.Post(fmt.Sprintf("https://api.weixin.qq.com/tcb/uploadfile?access_token=%s", access_token), "application/json", strings.NewReader(body))
+	if err != nil {
+		panic(err)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	// fmt.Println(string(data))
+	uR := &uploadResp{}
+	if err := json.Unmarshal(data, uR); err != nil {
+		panic(err)
+	}
+
+	if uR.Errcode != 0 {
+		panic(err)
+	}
+	multipartBody := &bytes.Buffer{}
+	writer := multipart.NewWriter(multipartBody)
+
+	params := map[string]string{"key": path, "Signature": uR.Authorization, "x-cos-security-token": uR.Token, "x-cos-meta-fileid": uR.CosFileId}
+
+	for key, val := range params {
+		err = writer.WriteField(key, val)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	part, err := writer.CreateFormFile("file", filepath.Base(path))
+	if err != nil {
+		panic(err)
+	}
+	fileData, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := part.Write(fileData); err != nil {
+		panic(err)
+	}
+
+	if err := writer.Close(); err != nil {
+		panic(err)
+	}
+
+	resp, err = http.Post(uR.Url, writer.FormDataContentType(), multipartBody)
+	if err != nil {
+		panic(err)
+	}
+	// data, err = ioutil.ReadAll(resp.Body)
+	// fmt.Println(string(data), err)
+	file.Close()
+	err = os.Remove(fpath)
+	if err != nil {
+		fmt.Println("remove: ", err)
+	}
+
+	return uR.FileID
 }

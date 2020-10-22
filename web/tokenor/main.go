@@ -5,16 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
+	"web/cloudfunccli"
+	"web/oa"
 
 	"github.com/gin-gonic/gin"
 )
 
-var access_token = ""
-var wxeToken = ""
-
-func init1() {
+func init() {
 	go func() {
 		for {
 			resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx9b588b2b3f090400&secret=08d530ef7af12573a04586491aff47a7")
@@ -39,8 +37,8 @@ func init1() {
 				continue
 			}
 			fmt.Println(string(data))
-			access_token = r.AccessToken
-			fmt.Println("token is: ", access_token)
+			cloudfunccli.AccessToken = r.AccessToken
+			fmt.Println("token is: ", cloudfunccli.AccessToken)
 			time.Sleep(time.Minute * 115)
 		}
 	}()
@@ -71,9 +69,9 @@ func init1() {
 				continue
 			}
 			fmt.Println(string(data))
-			wxeToken = r.AccessToken
-			fmt.Println("wxe token is: ", access_token)
-			doRequest("consolecommon", `{"tp":"wxe","token":"`+wxeToken+`"}`)
+			cloudfunccli.OATotoken = r.AccessToken
+			fmt.Println("official token is: ", cloudfunccli.OATotoken)
+			cloudfunccli.DoRequest("consolecommon", `{"tp":"wxe","token":"`+cloudfunccli.OATotoken+`"}`)
 			time.Sleep(time.Minute * 115)
 		}
 	}()
@@ -84,84 +82,16 @@ type TokenResp struct {
 }
 
 func main() {
-	resp, err := http.Get("https://api.weixin.qq.com/cgi-bin/user/get?access_token=38_g477FAmfZkj00VwMngC8Bj-_7d5dV4WPxy7VpMbKHO5WsT5sYMrJFM2nl0bbj_OY1tBxWEbL5xacp2arSUyrizhTbf5tIj5JzWIq3v8pO-f9barQXoqedDn5XrkmMXXbsKIjd7fJ_RD67iU1GDEcADAURS")
-	if err != nil {
-		panic(err)
-	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	// fmt.Println(string(data))
-
-	rr := R{}
-	if err := json.Unmarshal(data, &rr); err != nil {
-		panic(err)
-	}
-	// fmt.Println(rr.Data)
-
-	for i, v := range rr.Data.OpenID {
-		fmt.Println("executing...", i)
-		resp1, err := http.Get("https://api.weixin.qq.com/cgi-bin/user/info?access_token=38_g477FAmfZkj00VwMngC8Bj-_7d5dV4WPxy7VpMbKHO5WsT5sYMrJFM2nl0bbj_OY1tBxWEbL5xacp2arSUyrizhTbf5tIj5JzWIq3v8pO-f9barQXoqedDn5XrkmMXXbsKIjd7fJ_RD67iU1GDEcADAURS&openid=" + v + "&lang=zh_CN")
-		if err != nil {
-			panic(err)
-		}
-		data, err = ioutil.ReadAll(resp1.Body)
-		if err != nil {
-			panic(err)
-		}
-		// fmt.Println(string(data))
-		r1 := &R1{}
-		if err := json.Unmarshal(data, &r1); err != nil {
-			panic(err)
-		}
-		if r1.NickName == "易" {
-			fmt.Println(string(data))
-		}
-	}
-
-	return
+	// oa.BatchSyncOpenids("38_oNKAjSDy6KjfkSFHnS-s2OvHCpxxoIhbUOu3xullXv9HiwsoxKFKek0EpvPjkcULzsochOQNQwR25CifKlxVa_wQt2zHA6f1NWwkPMtI8rIeY2Iz2zjQ3oszWnIVE6oPRtcH_dxjPeTsvt72PWMjABAAHX")
+	// return
 	r := gin.Default()
 	r.GET("/token", token)
+
+	r.GET("/oacallback", oa.Authentication)
+	r.POST("/oacallback", oa.OACallback)
 	r.Run(":80")
 }
 
-type R1 struct {
-	OpenID   string `json:"openid"`
-	NickName string `json:"nickname"`
-}
-
-type R struct {
-	Total int64 `json:"total"`
-	Count int64 `json:"count"`
-	Data  *D    `json:"data"`
-}
-
-type D struct {
-	OpenID []string `json:"openid"`
-}
-
 func token(c *gin.Context) {
-	c.String(http.StatusOK, access_token)
-}
-
-const (
-	// env = "dev-osmu3"
-	env      = "release-8tcge"
-	baseURL  = "https://api.weixin.qq.com/tcb/invokecloudfunction"
-	funcName = "console"
-)
-
-func doRequest(funcName string, params string) (string, error) {
-	resp, err := http.Post(fmt.Sprintf("%s?access_token=%s&env=%s&name=%s", baseURL, access_token, env, funcName), "application/json", strings.NewReader(params))
-	if err != nil {
-		return "", err
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println(string(data))
-	return string(data), nil
+	c.String(http.StatusOK, cloudfunccli.AccessToken)
 }

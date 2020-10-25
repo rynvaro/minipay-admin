@@ -40,8 +40,11 @@
             width="180">
           </el-table-column>
           <el-table-column
-            prop="storeDesc"
-            label="店铺详情">
+            prop="balance"
+            label="余额">
+            <template slot-scope="scope">
+              {{scope.row.balance | rounding}}
+            </template>
           </el-table-column>
           <el-table-column
             prop="address"
@@ -106,6 +109,11 @@
         pageSize: 10,
         totalCount: 0,
       }
+    },
+    filters:{
+      rounding (value) {
+       return value.toFixed(2)
+       }
     },
     methods: {
       logout(row, index) {

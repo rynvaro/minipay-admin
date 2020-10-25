@@ -26,7 +26,7 @@
         <el-table-column
           prop="storeName"
           label="提现商家"
-          width="120">
+          width="180">
         </el-table-column>
         <el-table-column
           prop="merchantName"
@@ -78,9 +78,19 @@
            <div>提现历史</div>
         </el-col>
       </el-row>
+      <el-row style="margin-top: 20px;">
+        <el-col :span="10">
+          <el-input placeholder="输入商家姓名" v-model="q" @change="search" clearable></el-input>
+        </el-col>
+        <el-col :span="3">
+          <el-button @click="search">查询</el-button>
+        </el-col>
+      </el-row>
+
       <el-table
           :data="histories"
           border
+          show-summary
           style="width: 100%; margin-top: 10px;">
           <el-table-column
             prop="publishedAt"
@@ -91,7 +101,7 @@
           <el-table-column
             prop="storeName"
             label="提现商家"
-            width="120">
+            width="180">
           </el-table-column>
           <el-table-column
             prop="merchantName"
@@ -137,6 +147,15 @@
             </template>
           </el-table-column>
         </el-table>
+        <el-pagination
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              :current-page="currentPage"
+              :page-sizes="[10, 20, 30, 50, 100]"
+              :page-size="10"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount">
+            </el-pagination>
 
         <el-dialog title="新增板块" :visible.sync="dialogFormVisible">
 
@@ -174,9 +193,11 @@
 <script>
   import axios from 'axios'
   import moment from 'moment'
+  import { Loading } from 'element-ui';
   export default {
     data() {
       return {
+        q: '',
         dialogFormVisible: false,
         withdraws: [],
         histories: [],
@@ -185,6 +206,9 @@
         currentId: '',
         month: 0,
         day: 0,
+        currentPage: 1,
+        pageSize: 10,
+        totalCount: 0,
         statuslist: [
           {
             value: 0,
@@ -212,6 +236,42 @@
           return ''
         }
         return moment(date).format("YYYY-MM-DD")
+      },
+      handleSizeChange(e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.pageSize = e
+        this.currentPage = 1
+        axios.post('http://localhost:8090/proxy',{q: this.q, tp: 'withdrawhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.histories = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
+      handleCurrentChange(e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.currentPage = e
+        axios.post('http://localhost:8090/proxy',{q: this.q, tp: 'withdrawhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.histories = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
+      search() {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        axios.post('http://localhost:8090/proxy',{q: this.q, tp: 'withdrawhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.histories = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
       },
       handleClick(row) {
         this.currentId = row._id
@@ -243,12 +303,21 @@
       }
     },
     mounted() {
+      let loadingInstance = Loading.service({ fullscreen: true });
       axios.post('http://localhost:8090/proxy',{tp: 'withdraws'}).then(resp => {
         this.withdraws = resp.data.reqs
-        this.histories = resp.data.histories
         this.month = resp.data.month
         this.day = resp.data.day
       })
+      axios.post('http://localhost:8090/proxy',{tp: 'withdrawhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+        console.log(resp.data)
+        this.histories = resp.data.data
+        this.currentPage = resp.data.currentPage
+        this.pageSize = resp.data.pageSize
+        this.totalCount = resp.data.totalCount
+        loadingInstance.close()
+      })
+
     }
   }
 </script>

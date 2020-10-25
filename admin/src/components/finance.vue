@@ -1,285 +1,280 @@
 <template>
   <div>
 
-    <el-row>
-      <el-col :span="12">
-        <el-tabs v-model="activeName" type="card" @tab-click="handleClick">
-          <el-tab-pane label="本月总流水" name="first">
-            <el-table
-              :data="financial.cashflow.month"
-              style="width: 35%">
-              <el-table-column
-                prop="in"
-                label="收入"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="out"
-                label="支出"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-          <el-tab-pane label="今日流水" name="second">
-            <el-table
-              :data="financial.cashflow.day"
-              style="width: 35%">
-              <el-table-column
-                prop="in"
-                label="收入"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="out"
-                label="支出"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-          <el-tab-pane label="历史流水" name="third">
-            <el-table
-              :data="financial.cashflow.histories"
-              style="width: 70%">
-              <el-table-column
-                prop="_id"
-                label="日期"
-                width="180"
-                :formatter="dateFormater">
-              </el-table-column>
-              <el-table-column
-                prop="in"
-                label="收入"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="out"
-                label="支出"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
-      </el-col>
-      <el-col :span="12">
-        <el-tabs v-model="activeNameOrder" type="card" @tab-click="handleClick">
-          <el-tab-pane label="订单" name="first">
-            <el-table
-              :data="financial.order.statistics"
-              style="width: 60%">
-              <el-table-column
-                prop="month"
-                label="本月订单数"
-                width="180">
-              </el-table-column>
-              <el-table-column
-                prop="day"
-                label="今日订单数"
-                width="180">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-          <el-tab-pane label="历史" name="third">
-            <el-table
-              :data="financial.order.histories"
-              style="width: 90%">
-              <el-table-column
-                prop="timestamp"
-                label="日期"
-                width="120"
-                :formatter="dateFormater">
-              </el-table-column>
-              <el-table-column
-                prop="userName"
-                label="用户名"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="finalAmount"
-                label="消费金额"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="storeName"
-                label="门店"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="coupon"
-                label="优惠券使用"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
-      </el-col>
-    </el-row>
+    <el-tabs v-model="activeName" type="border-card" @tab-click="handleClick">
+      <el-tab-pane label="汇总" name="1">
+        <el-divider content-position="left">收支</el-divider>
+        <el-row type="flex" justify="start">
+          <el-col :span="4">
+            <el-tag type="success">本月收入：{{financialsummary.m.in}} 元</el-tag>
+          </el-col>
+          <el-col :span="4">
+            <el-tag type="danger">本月支出：{{financialsummary.m.out}} 元</el-tag>
+          </el-col>
 
-    <el-row>
-      <el-col :span="12">
-        <el-tabs v-model="activeNameCoupon" type="card" @tab-click="handleClick">
-          <el-tab-pane label="优惠券" name="first">
-            <el-table
-              :data="financial.coupon.statistics"
-              style="width: 40%">
-              <el-table-column
-                prop="month"
-                label="本月总计"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="day"
-                label="今日使用"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-          <el-tab-pane label="历史" name="third">
-            <el-table
-              :data="financial.coupon.histories"
-              style="width: 80%">
-              <el-table-column
-                prop="timestamp"
-                label="日期"
-                width="120"
-                :formatter="dateFormater">
-              </el-table-column>
-              <el-table-column
-                prop="userName"
-                label="用户名"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="coupon"
-                label="优惠券面额"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="storeName"
-                label="使用门店"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
+          <el-col :span="4">
+            <el-tag type="success">今日收入：{{financialsummary.d.in}} 元</el-tag>
+          </el-col>
+          <el-col :span="4">
+            <el-tag type="danger">今日支出：{{financialsummary.d.out}} 元</el-tag>
+          </el-col>
+        </el-row>
 
-      </el-col>
-      <el-col :span="12">
-        <el-tabs v-model="activeNameSubsidy" type="card" @tab-click="handleClick">
-          <el-tab-pane label="商家补贴" name="first">
-            <el-table
-              :data="financial.subsidy.statistics"
-              style="width: 40%">
-              <el-table-column
-                prop="month"
-                label="本月总补贴"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="day"
-                label="今日补贴"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-          <el-tab-pane label="历史" name="third">
-            <el-table
-              :data="financial.subsidy.histories"
-              style="width: 90%">
-              <el-table-column
-                prop="timestamp"
-                label="日期"
-                width="120"
-                :formatter="dateFormater">
-              </el-table-column>
-              <el-table-column
-                prop="storeName"
-                label="商家门店"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="userName"
-                label="新用户名"
-                width="100">
-              </el-table-column>
-              <el-table-column
-                prop="subsidy"
-                label="补贴金额"
-                width="100">
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
-      </el-col>
-    </el-row>
+        <el-divider content-position="left">订单</el-divider>
+        <el-row type="flex" justify="start">
+          <el-col :span="4">
+            <el-tag type="success">本月订单数：{{financialsummary.m.orders}}</el-tag>
+          </el-col>
+          <el-col :span="4">
+            <el-tag type="success">今日订单数：{{financialsummary.d.orders}}</el-tag>
+          </el-col>
+        </el-row>
 
-    <el-tabs v-model="activeNameUser" type="card" @tab-click="handleClick">
-      <el-tab-pane label="新增用户" name="first">
-        <el-table
-          :data="financial.user.statistics"
-          style="width: 30%">
-          <el-table-column
-            prop="month"
-            label="本月新增"
-            width="180">
-          </el-table-column>
-          <el-table-column
-            prop="day"
-            label="今日新增"
-            width="180">
-          </el-table-column>
-        </el-table>
+        <el-divider content-position="left">用户</el-divider>
+        <el-row type="flex" justify="start">
+          <el-col :span="4">
+            <el-tag type="success">本月新增用户数：{{financialsummary.m.users}} 个</el-tag>
+          </el-col>
+          <el-col :span="4">
+            <el-tag type="success">今日新增用户数：{{financialsummary.d.users}} 个</el-tag>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">优惠券</el-divider>
+        <el-row type="flex" justify="start">
+          <el-col :span="5">
+            <el-tag type="danger">本月优惠券使用：{{financialsummary.m.coupon}} 元</el-tag>
+          </el-col>
+          <el-col :span="5">
+            <el-tag type="danger">今日优惠券使用：{{financialsummary.d.coupon}} 元</el-tag>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">赏金令</el-divider>
+        <el-row type="flex" justify="start">
+          <el-col :span="5">
+            <el-tag type="danger">本月商家补贴：{{financialsummary.m.subsidy}} 元</el-tag>
+          </el-col>
+          <el-col :span="5">
+            <el-tag type="danger">今日商家补贴：{{financialsummary.d.subsidy}} 元</el-tag>
+          </el-col>
+        </el-row>
+
+
       </el-tab-pane>
-      <el-tab-pane label="历史" name="third">
+      <el-tab-pane label="收支历史" name="2">
         <el-table
-          :data="financial.user.histories"
-          style="width: 80%">
+          :data="financialinouthis">
           <el-table-column
-            prop="createdAt"
+            prop="_id"
             label="日期"
             width="180"
             :formatter="dateFormater">
           </el-table-column>
           <el-table-column
-            prop="data.name"
+            prop="in"
+            label="收入"
+            width="180">
+            <template slot-scope="scope">
+              {{scope.row.in | rounding}}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="out"
+            label="支出"
+            width="180">
+            <template slot-scope="scope">
+              {{scope.row.out | rounding}}
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+              @current-change="handleCurrentChangeInout"
+              :current-page="currentPage"
+              :page-sizes="[10]"
+              :page-size="10"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount">
+            </el-pagination>
+      </el-tab-pane>
+
+      <el-tab-pane label="优惠券记录" name="3">
+        <el-table
+          :data="couponhis"
+          style="width: 80%">
+          <el-table-column
+            prop="timestamp"
+            label="日期"
+            width="120"
+            :formatter="dateFormater">
+          </el-table-column>
+          <el-table-column
+            prop="userName"
             label="用户名"
             width="180">
           </el-table-column>
           <el-table-column
-            prop="data.firstPayStoreName"
-            label="首单消费门店"
+            prop="coupon"
+            label="优惠券面额"
+            width="100">
+          </el-table-column>
+          <el-table-column
+            prop="storeName"
+            label="使用门店"
+            width="280">
+          </el-table-column>
+        </el-table>
+        <el-pagination
+              @current-change="handleCurrentChangeCoupon"
+              :current-page="currentPage"
+              :page-sizes="[10]"
+              :page-size="10"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount">
+            </el-pagination>
+      </el-tab-pane>
+
+      <el-tab-pane label="补贴记录" name="4">
+        <el-table
+          :data="subsidyhis"
+          style="width: 90%">
+          <el-table-column
+            prop="timestamp"
+            label="日期"
+            width="120"
+            :formatter="dateFormater">
+          </el-table-column>
+          <el-table-column
+            prop="storeName"
+            label="商家门店"
+            width="280">
+          </el-table-column>
+          <el-table-column
+            prop="userName"
+            label="新用户名"
             width="180">
           </el-table-column>
           <el-table-column
-            prop="data.payAmount"
-            label="消费金额"
-            width="180">
+            prop="subsidy"
+            label="补贴金额"
+            width="00">
           </el-table-column>
         </el-table>
+        <el-pagination
+              @current-change="handleCurrentChangeSubsidy"
+              :current-page="currentPage"
+              :page-sizes="[10]"
+              :page-size="10"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="totalCount">
+            </el-pagination>
       </el-tab-pane>
     </el-tabs>
-
-
   </div>
 </template>
 
 <script>
   import axios from 'axios'
   import moment from 'moment'
+  import { Loading } from 'element-ui';
   export default {
     data() {
       return {
-        activeName: 'first',
-        activeNameOrder: 'first',
-        activeNameCoupon: 'first',
-        activeNameSubsidy: 'first',
-        activeNameUser: 'first',
-        financial: {},
-        stores: [],
+        activeName: '1',
+        financialsummary: {},
+
+        currentPage: 1,
+        pageSize: 10,
+        totalCount: 0,
+        financialinouthis: [],
+        couponhis: [],
+        subsidyhis: []
       }
     },
+    filters:{
+      rounding (value) {
+       return value.toFixed(2)
+       }
+    },
     methods: {
+      handleCurrentChangeInout(e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.currentPage = e
+        axios.post('http://localhost:8090/proxy', {tp: 'financialinouthis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.financialinouthis = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
+      handleCurrentChangeCoupon(e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.currentPage = e
+        axios.post('http://localhost:8090/proxy', {tp: 'couponhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.couponhis = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
+      handleCurrentChangeSubsidy(e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        this.currentPage = e
+        axios.post('http://localhost:8090/proxy', {tp: 'subsidyhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+          console.log(resp.data)
+          this.subsidyhis = resp.data.data
+          this.currentPage = resp.data.currentPage
+          this.pageSize = resp.data.pageSize
+          this.totalCount = resp.data.totalCount
+          loadingInstance.close()
+        })
+      },
       handleClick() {
-
+        this.currentPage = 1
+        let loadingInstance = Loading.service({ fullscreen: true });
+        switch (this.activeName) {
+          case "1":
+            axios.post('http://localhost:8090/proxy', {tp: 'financialsummary'}).then(resp => {
+              this.financialsummary = resp.data
+              console.log(resp.data)
+              loadingInstance.close()
+            })
+          break;
+          case "2":
+            axios.post('http://localhost:8090/proxy', {tp: 'financialinouthis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+              console.log(resp.data)
+              this.financialinouthis = resp.data.data
+              this.currentPage = resp.data.currentPage
+              this.pageSize = resp.data.pageSize
+              this.totalCount = resp.data.totalCount
+              loadingInstance.close()
+            })
+          break;
+          case "3":
+            axios.post('http://localhost:8090/proxy', {tp: 'couponhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+              console.log(resp.data)
+              this.couponhis = resp.data.data
+              this.currentPage = resp.data.currentPage
+              this.pageSize = resp.data.pageSize
+              this.totalCount = resp.data.totalCount
+              loadingInstance.close()
+            })
+          break;
+          case "4":
+            axios.post('http://localhost:8090/proxy', {tp: 'subsidyhis',currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+              console.log(resp.data)
+              this.subsidyhis = resp.data.data
+              this.currentPage = resp.data.currentPage
+              this.pageSize = resp.data.pageSize
+              this.totalCount = resp.data.totalCount
+              loadingInstance.close()
+            })
+          break;
+        }
       },
       dateFormater: function(row, column) {
         var date = row[column.property];
@@ -290,16 +285,30 @@
       },
     },
     mounted() {
-      let data = {
-        tp: 'financial'
-      }
-      axios.post('http://localhost:8090/proxy', data).then(resp => {
-        this.financial = resp.data
+      let loadingInstance = Loading.service({ fullscreen: true });
+      axios.post('http://localhost:8090/proxy', {tp: 'financialsummary'}).then(resp => {
+        this.financialsummary = resp.data
         console.log(resp.data)
+        loadingInstance.close()
       })
     }
   }
 </script>
 
 <style>
+  .el-row {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .el-col {
+    border-radius: 4px;
+  }
+
+  .title {
+    margin-top: 5px;
+  }
 </style>

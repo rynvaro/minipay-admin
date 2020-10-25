@@ -11,6 +11,7 @@ import withdraws from '@/components/withdraws'
 import others from '@/components/others'
 import qrcodes from '@/components/qrcodes'
 import storegroups from '@/components/storegroups'
+import orders from '@/components/orders.vue'
 
 
 Vue.use(Router)
@@ -65,6 +66,11 @@ export default new Router({
       path: '/components/qrcodes',
       name: 'qrcodes',
       component: qrcodes
+    },
+    {
+      path: '/components/orders',
+      name: 'orders',
+      component: orders
     },
     {
       path: '/components/storegroups',

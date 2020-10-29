@@ -58,6 +58,7 @@ export default {
         {name:'/components/finance',navItem:'财务板块'},
         {name:'/components/withdraws',navItem:'提现板块'},
         {name:'/components/orders',navItem:'订单列表'},
+        {name:'/components/couponrules',navItem:'优惠券设置'},
         {name:'/components/others',navItem:'其他杂项'},
       ]
     }

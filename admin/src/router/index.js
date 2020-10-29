@@ -12,6 +12,7 @@ import others from '@/components/others'
 import qrcodes from '@/components/qrcodes'
 import storegroups from '@/components/storegroups'
 import orders from '@/components/orders.vue'
+import rules from '@/components/couponrules.vue'
 
 
 Vue.use(Router)
@@ -76,6 +77,11 @@ export default new Router({
       path: '/components/storegroups',
       name: 'storegroups',
       component: storegroups
+    },
+    {
+      path: '/components/couponrules',
+      name: 'rules',
+      component: rules
     }
   ]
 })

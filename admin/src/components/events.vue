@@ -324,7 +324,6 @@
          this.type = 1
       },
       doAddEvent(type){
-        let loadingInstance = Loading.service({ fullscreen: true });
         if (!this.event.title) {
           this.$message.error("请输入活动名称")
           return
@@ -376,12 +375,14 @@
         }
 
 
+        let loadingInstance = Loading.service({ fullscreen: true });
         if (type == 1) {
           this.event.tp = 'eventadd'
           this.event.detailImage = this.detailImage
           axios.post('http://localhost:8090/eventadd',this.event).then(resp => {
             if (resp.status == 200) {
               this.$message.success("添加成功")
+              this.event._id = resp.data._id
               this.events.push(this.event)
               this.event = {}
             }else {

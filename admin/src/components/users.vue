@@ -24,6 +24,14 @@
           width="100">
         </el-table-column>
         <el-table-column
+          prop="data.balance"
+          label="余额"
+          width="100">
+          <template slot-scope="scope">
+            {{scope.row.data.balance/100}}
+          </template>
+        </el-table-column>
+        <el-table-column
           prop="data.exp"
           label="经验"
           width="50">
@@ -71,6 +79,7 @@
           label="操作"
           width="300">
           <template slot-scope="scope">
+            <el-button @click="addBalance(scope.row,scope.$index)" type="text" size="small">修改余额</el-button>
             <el-button @click="handleClick(scope.row, 1)" type="text" size="small">发放优惠券</el-button>
             <el-button @click="handleClick(scope.row, 2)" type="text" size="small">发放经验</el-button>
             <!-- <el-button @click="handleClick(scope.row, 3)" type="text" size="small">增加签到天数</el-button> -->
@@ -89,6 +98,22 @@
             layout="total, sizes, prev, pager, next, jumper"
             :total="totalCount">
           </el-pagination>
+          <el-dialog title="修改余额" :visible.sync="dialogFormVisible">
+
+              <el-row>
+                <el-col :span="3">
+                  <div class="title">余额：</div>
+                </el-col>
+                <el-col :span="6">
+                  <el-input placeholder="输入余额" v-model="balance" clearable></el-input>
+                </el-col>
+              </el-row>
+
+            <div slot="footer" class="dialog-footer">
+              <el-button @click="dialogFormVisible = false">取 消</el-button>
+              <el-button type="primary" @click="doAddBalance()">确 定</el-button>
+            </div>
+          </el-dialog>
   </div>
 </template>
 
@@ -99,14 +124,36 @@
   export default {
     data() {
       return {
+        dialogFormVisible: false,
+        balance: 0,
         users:[],
         q: '',
         currentPage: 1,
         pageSize: 10,
         totalCount: 0,
+        currentUserId: '',
+        currentIndex: -1,
       }
     },
     methods: {
+      addBalance(row,index) {
+        this.dialogFormVisible = true
+        this.currentUserId = row._id
+        this.currentIndex = index
+      },
+      doAddBalance() {
+        let balance = this.balance * 100
+        let loadingInstance = Loading.service({ fullscreen: true });
+        axios.post('http://localhost:8090/proxy',{tp: 'updateuserbalance' ,id:this.currentUserId, balance: balance}).then(resp => {
+          console.log(resp)
+          this.users[this.currentIndex].data.balance = balance
+          this.balance = 0
+          this.currentIndex = -1
+          this.currentUserId = '',
+          this.dialogFormVisible = false
+          loadingInstance.close()
+        })
+      },
       handleSizeChange(e) {
         let loadingInstance = Loading.service({ fullscreen: true });
         this.pageSize = e

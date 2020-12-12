@@ -68,12 +68,18 @@
           prop="finalAmount"
           label="用户实付"
           width="100">
+          <template slot-scope="scope">
+            <span style="margin-left: 10px">{{scope.row.payAmount + scope.row.mustPayAmount - scope.row.realCoupon}}</span>
+          </template>
         </el-table-column>
 
         <el-table-column
           prop="totalAmount"
           label="订单金额"
           width="100">
+          <template slot-scope="scope">
+            <span style="margin-left: 10px">{{scope.row.payAmount + scope.row.mustPayAmount - scope.row.realCoupon}}</span>
+          </template>
         </el-table-column>
 
         <el-table-column

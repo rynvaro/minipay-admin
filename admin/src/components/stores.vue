@@ -47,6 +47,30 @@
             </template>
           </el-table-column>
           <el-table-column
+            prop="canUseBalance"
+            label="是否可用余额支付">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px" v-if="scope.row.canUseBalance || scope.row.canUseBalance === undefined">可用</span>
+              <span style="margin-left: 10px" v-if="scope.row.canUseBalance === false" >不可用</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="fanxian100"
+            label="是否参与返现100%活动">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px" v-if="scope.row.fanxian100">已参与</span>
+              <span style="margin-left: 10px" v-if="!scope.row.fanxian100">不参与</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="maxFanxian"
+            label="最高返现">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px" v-if="scope.row.maxFanxian">{{scope.row.maxFanxian}}</span>
+              <span style="margin-left: 10px" v-if="!scope.row.maxFanxian">未设置</span>
+            </template>
+          </el-table-column>
+          <el-table-column
             prop="address"
             label="地址">
           </el-table-column>
@@ -79,6 +103,19 @@
               <el-button @click="rake(scope.row, scope.$index,0)" type="text" size="small">参与抽成</el-button>
               <el-button @click="rake(scope.row, scope.$index,1)" type="text" size="small">不参与抽成</el-button>
               <el-button @click="logout(scope.row, scope.$index)" type="text" size="small">清除登录状态</el-button>
+              <el-button @click="canUseBalance(scope.row, scope.$index,0)" type="text" size="small">禁用余额支付</el-button>
+              <el-button @click="canUseBalance(scope.row, scope.$index,1)" type="text" size="small">启用余额支付</el-button>
+
+              <el-button @click="fanxian100(scope.row, scope.$index,0)" type="text" size="small">退出返现100%活动</el-button>
+              <el-button @click="fanxian100(scope.row, scope.$index,1)" type="text" size="small">参与返现100%活动</el-button>
+
+
+              <el-button @click="maxFanxian(scope.row, scope.$index)" type="text" size="small">设置最高返现</el-button>
+
+
+              <el-button @click="resetBalance(scope.row, scope.$index)" type="text" size="small">清空余额</el-button>
+
+
             </template>
           </el-table-column>
         </el-table>
@@ -91,6 +128,18 @@
               layout="total, sizes, prev, pager, next, jumper"
               :total="totalCount">
             </el-pagination>
+
+            <el-dialog title="返现设置" :visible.sync="dialogFormVisible">
+              <el-form :model="form">
+                <el-form-item label="最高返现">
+                  <el-input v-model.number="form.maxFanxian"></el-input>
+                </el-form-item>
+              </el-form>
+              <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="doMaxFanxian">确 定</el-button>
+              </div>
+            </el-dialog>
   </div>
 </template>
 
@@ -101,6 +150,7 @@
   export default {
     data() {
       return {
+        dialogFormVisible: false,
         stores:[],
         q: '',
         qrcode: '',
@@ -108,6 +158,7 @@
         currentPage: 1,
         pageSize: 10,
         totalCount: 0,
+        form: {},
       }
     },
     filters:{
@@ -125,6 +176,84 @@
         axios.post('http://localhost:8090/proxy',data).then(resp => {
           loadingInstance.close()
           this.$message.success("清除成功")
+        })
+      },
+      maxFanxian(row, index){
+          this.dialogFormVisible = true
+          this.form.index = index
+      },
+      doMaxFanxian() {
+        console.log(this.form)
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: this.stores[this.form.index]._id,
+          maxFanxian: this.form.maxFanxian,
+          tp: "maxfanxian"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          this.dialogFormVisible = false
+          axios.post('http://localhost:8090/stores',{q: this.q,currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+            console.log(resp.data)
+            this.stores = resp.data.data
+            this.currentPage = resp.data.currentPage
+            this.pageSize = resp.data.pageSize
+            this.totalCount = resp.data.totalCount
+            loadingInstance.close()
+          })
+        })
+        
+      },
+      resetBalance(row, index) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: row._id,
+          tp: "resetbalance"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          this.stores[index].balance = 0
+          loadingInstance.close()
+        })
+      },
+      fanxian100(row, index,e) {
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: row._id,
+          fanxian100: e,
+          tp: "fanxian100"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          // if (e == 1) {
+          //   row.fanxian100 = true
+          //   this.stores[index].fanxian100 = true
+          // }else {
+          //   this.stores[index].fanxian100 = false
+          // }
+          axios.post('http://localhost:8090/stores',{q: this.q,currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+            console.log(resp.data)
+            this.stores = resp.data.data
+            this.currentPage = resp.data.currentPage
+            this.pageSize = resp.data.pageSize
+            this.totalCount = resp.data.totalCount
+            loadingInstance.close()
+          })
+        })
+      },
+      canUseBalance(row, index,e){
+        let loadingInstance = Loading.service({ fullscreen: true });
+        let data = {
+          id: row._id,
+          canUseBalance: e,
+          tp: "canusebalance"
+        }
+        axios.post('http://localhost:8090/proxy',data).then(resp => {
+          axios.post('http://localhost:8090/stores',{q: this.q,currentPage: this.currentPage, pageSize: this.pageSize}).then(resp => {
+            console.log(resp.data)
+            this.stores = resp.data.data
+            this.currentPage = resp.data.currentPage
+            this.pageSize = resp.data.pageSize
+            this.totalCount = resp.data.totalCount
+            loadingInstance.close()
+          })
         })
       },
       rake(row, index,e){
